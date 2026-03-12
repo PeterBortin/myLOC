@@ -13,7 +13,7 @@
 <style>
   :root {
     --ios-bg: #000000;
-    --ios-glass: rgba(28, 28, 30, 0.7);
+    --ios-glass: rgba(28, 28, 30, 0.85);
     --accent: #30d158;
     --accent-blue: #0a84ff;
     --danger: #ff453a;
@@ -34,6 +34,7 @@
     font-family: 'SF Pro Display', -apple-system, sans-serif;
     color: var(--text);
     overflow: hidden;
+    position: fixed;
   }
 
   #map { position: absolute; inset: 0; z-index: 0; }
@@ -53,7 +54,7 @@
   }
   #status-text { font-size: 13px; font-weight: 500; letter-spacing: -0.2px; }
 
-  /* ── MODAL (SAVE LAND) ── */
+  /* ── MODAL ── */
   #modal-overlay {
     position: fixed; inset: 0; background: rgba(0,0,0,0.6);
     backdrop-filter: blur(10px); z-index: 2000;
@@ -68,7 +69,7 @@
 
   .modal-title { font-weight: 600; font-size: 20px; margin-bottom: 20px; text-align: center; }
   .input-group { margin-bottom: 15px; }
-  .input-group label { display: block; font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 6px; margin-left: 10px; }
+  .input-group label { display: block; font-size: 10px; color: rgba(255,255,255,0.5); margin-bottom: 6px; margin-left: 10px; text-transform: uppercase; }
   .modal-input {
     width: 100%; background: rgba(255,255,255,0.08); border: none;
     border-radius: 12px; padding: 12px 16px; color: #fff; font-size: 16px;
@@ -82,9 +83,7 @@
   .color-opt.selected { border-color: #fff; transform: scale(1.1); }
 
   .modal-btns { display: flex; gap: 10px; margin-top: 25px; }
-  .modal-btn {
-    flex: 1; padding: 14px; border-radius: 14px; border: none; font-weight: 600; font-size: 15px;
-  }
+  .modal-btn { flex: 1; padding: 14px; border-radius: 14px; border: none; font-weight: 600; font-size: 15px; }
   .btn-save { background: var(--accent-blue); color: white; }
   .btn-cancel { background: rgba(255,255,255,0.1); color: white; }
 
@@ -103,26 +102,19 @@
   .nav-item svg { width: 26px; height: 26px; }
   .nav-item span { font-size: 10px; }
 
-  /* ── DRAWER (ЖУРНАЛ) ── */
+  /* ── DRAWER ── */
   #drawer {
-    position: absolute; bottom: -80%; left: 0; width: 100%; height: 75%;
+    position: absolute; top: 100%; left: 0; width: 100%; height: 85%;
     background: var(--ios-glass); backdrop-filter: blur(30px);
-    border-radius: 40px 40px 0 0; z-index: 150;
-    transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+    border-radius: 40px 40px 0 0; z-index: 1500;
+    transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1);
     padding: 20px; border-top: 1px solid rgba(255,255,255,0.1);
-    transform: translateY(0);
     display: flex; flex-direction: column;
   }
   #drawer.open { transform: translateY(-100%); }
-  .handle-area { 
-    width: 100%; height: 40px; margin-top: -20px; 
-    display: flex; align-items: center; justify-content: center;
-    touch-action: none;
-    flex-shrink: 0;
-  }
+  .handle-area { width: 100%; height: 30px; margin-top: -10px; display: flex; align-items: center; justify-content: center; touch-action: none; flex-shrink: 0; }
   .handle { width: 40px; height: 5px; background: rgba(255,255,255,0.2); border-radius: 10px; }
 
-  /* SEARCH BAR */
   .search-container { position: relative; margin-bottom: 15px; flex-shrink: 0; }
   #search-land {
     width: 100%; background: rgba(255,255,255,0.1); border: none;
@@ -137,37 +129,34 @@
     padding: 15px; margin-bottom: 12px; display: flex; gap: 15px; align-items: center;
   }
   .land-preview {
-    width: 48px; height: 48px; background: rgba(255,255,255,0.1);
-    border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    width: 65px; height: 65px; background: rgba(0,0,0,0.3);
+    border-radius: 14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    border: 1px solid rgba(255,255,255,0.1); overflow: hidden;
   }
-  .land-preview svg { width: 80%; height: 80%; }
+  .land-preview svg { width: 100%; height: 100%; }
   .land-info { flex-grow: 1; overflow: hidden; }
   .land-info h4 { margin: 0; font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .land-info p { margin: 3px 0 0; font-size: 11px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.5px; }
-  .coords-text { font-size: 10px; color: rgba(255,255,255,0.3); margin-top: 4px; font-family: monospace; cursor: copy; }
-  .land-actions { display: flex; gap: 10px; }
-  .action-btn { 
-    width: 42px; height: 42px; border-radius: 50%; border: none; 
-    display: flex; align-items: center; justify-content: center;
-    font-size: 18px; font-weight: bold;
-  }
+  .land-info p { margin: 3px 0 0; font-size: 11px; opacity: 0.6; text-transform: uppercase; }
+  .land-comment { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 4px; font-style: italic; }
+  .coords-text { font-size: 10px; color: var(--accent-blue); margin-top: 6px; font-family: monospace; }
 
   .export-area { padding: 10px 0 30px; flex-shrink: 0; }
   .btn-export {
-    width: 100%; padding: 16px; border-radius: 16px; background: rgba(255,255,255,0.1);
-    color: #fff; border: 1px solid rgba(255,255,255,0.1); font-weight: 600; font-size: 15px;
+    width: 100%; padding: 16px; border-radius: 16px; background: var(--accent-blue);
+    color: #fff; border: none; font-weight: 600; font-size: 15px;
     display: flex; align-items: center; justify-content: center; gap: 10px;
   }
-  .btn-export:active { background: rgba(255,255,255,0.2); }
 
   .dot-marker { width: 14px; height: 14px; background: var(--accent-blue); border: 3px solid white; border-radius: 50%; }
   .user-location-marker { width: 18px; height: 18px; background: var(--accent-blue); border: 3px solid white; border-radius: 50%; box-shadow: 0 0 15px var(--accent-blue); }
 
-  .pdf-export-container { background: white; color: black; padding: 40px; font-family: sans-serif; }
-  .pdf-item { display: flex; align-items: center; gap: 20px; border-bottom: 1px solid #eee; padding: 15px 0; }
-  .pdf-thumb { width: 60px; height: 60px; border: 1px solid #ccc; }
-  .pdf-info h2 { margin: 0; font-size: 18px; }
-  .pdf-info p { margin: 5px 0; color: #666; font-size: 12px; }
+  /* PDF STYLES */
+  .pdf-export-container { background: white; color: black; padding: 40px; }
+  .pdf-item { display: flex; align-items: flex-start; gap: 25px; border-bottom: 1px solid #eee; padding: 20px 0; page-break-inside: avoid; }
+  .pdf-thumb { width: 120px; height: 120px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; background: #f9f9f9; }
+  .pdf-info h2 { margin: 0 0 10px; font-size: 22px; color: #1a1a1a; }
+  .pdf-info p { margin: 4px 0; font-size: 13px; color: #444; }
+  .pdf-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 10px; margin-bottom: 8px; }
 </style>
 </head>
 <body>
@@ -177,13 +166,21 @@
 
 <div id="modal-overlay">
   <div id="save-modal">
-    <div class="modal-title">Новый участок</div>
+    <div class="modal-title">Сохранить участок</div>
     <div class="input-group">
-      <label>НАЗВАНИЕ</label>
-      <input type="text" id="inp-land-name" class="modal-input" placeholder="Моя земля">
+      <label>Название участка</label>
+      <input type="text" id="inp-land-name" class="modal-input" placeholder="Введите название...">
     </div>
     <div class="input-group">
-      <label>ЦВЕТОВАЯ ГРУППА</label>
+      <label>Группа</label>
+      <input type="text" id="inp-group-name" class="modal-input" placeholder="Напр. Пашня">
+    </div>
+    <div class="input-group">
+      <label>Комментарий</label>
+      <input type="text" id="inp-land-note" class="modal-input" placeholder="Дополнительные детали...">
+    </div>
+    <div class="input-group">
+      <label>Цвет</label>
       <div class="color-selector" id="color-picker">
         <div class="color-opt selected" data-color="green" style="background: var(--tag-green)"></div>
         <div class="color-opt" data-color="yellow" style="background: var(--tag-yellow)"></div>
@@ -191,10 +188,6 @@
         <div class="color-opt" data-color="red" style="background: var(--tag-red)"></div>
         <div class="color-opt" data-color="blue" style="background: var(--tag-blue)"></div>
       </div>
-    </div>
-    <div class="input-group">
-      <label>ИМЯ ГРУППЫ</label>
-      <input type="text" id="inp-group-name" class="modal-input" placeholder="Напр. Пашня">
     </div>
     <div class="modal-btns">
       <button class="modal-btn btn-cancel" id="btn-modal-cancel">Отмена</button>
@@ -209,7 +202,7 @@
   
   <div class="search-container">
     <svg class="search-icon" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-    <input type="text" id="search-land" placeholder="Поиск по названию..." autocomplete="off">
+    <input type="text" id="search-land" placeholder="Поиск по названию или группе..." autocomplete="off">
   </div>
 
   <div id="land-list"></div>
@@ -217,7 +210,7 @@
   <div class="export-area">
     <button class="btn-export" onclick="exportToPDF()">
       <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-      Экспорт в PDF
+      Экспорт отчета в PDF
     </button>
   </div>
 </div>
@@ -244,48 +237,24 @@
 <script>
   const COLOR_PALETTE = { 'green': '#30d158', 'yellow': '#ffd60a', 'red': '#ff453a', 'orange': '#ff9f0a', 'blue': '#0a84ff' };
   const GROUP_NAMES = {};
+  let lands = [];
 
   const map = L.map('map', { center: [50.45, 30.52], zoom: 13, zoomControl: false, attributionControl: false });
   
   const layers = {
-    dark: {
-      name: "Carto Voyager (Dark)",
-      layer: L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { className: 'dark-filter' })
-    },
-    satellite: {
-      name: "Esri Satellite",
-      layer: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}')
-    },
-    topo: {
-      name: "OpenTopoMap",
-      layer: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png')
-    }
+    dark: { name: "Темная карта", layer: L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { className: 'dark-filter' }) },
+    satellite: { name: "Спутник", layer: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}') },
+    topo: { name: "Рельеф", layer: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png') }
   };
-
   layers.dark.layer.addTo(map);
 
-  let drawMode = false, tempPoints = [], tempMarkers = [], lands = [];
+  let drawMode = false, tempPoints = [], tempMarkers = [], curL = 0;
   let tempLine = L.polyline([], {color: '#0a84ff', weight: 3, dashArray: '5, 10'}).addTo(map);
   let selectedColor = 'green';
-  let curL = 0;
   let userMarker, userCircle;
 
-  /* ── GEOLOCATION ── */
-  map.on('locationfound', (e) => {
-    if (userMarker) { map.removeLayer(userMarker); map.removeLayer(userCircle); }
-    userCircle = L.circle(e.latlng, e.accuracy, { color: 'var(--accent-blue)', fillOpacity: 0.1, weight: 1 }).addTo(map);
-    userMarker = L.marker(e.latlng, { icon: L.divIcon({ className: 'user-location-marker', iconSize: [18, 18] }) }).addTo(map);
-    updateStatus("Геопозиция найдена");
-  });
-
-  map.on('locationerror', () => updateStatus("Ошибка GPS доступа"));
-
   /* ── NAVIGATION ── */
-  document.getElementById('nav-locate').onclick = () => { 
-    map.locate({setView: true, maxZoom: 16}); 
-    updateStatus("Поиск GPS..."); 
-  };
-  
+  document.getElementById('nav-locate').onclick = () => { map.locate({setView: true, maxZoom: 16}); updateStatus("Поиск GPS..."); };
   document.getElementById('nav-layers').onclick = () => {
     const keys = Object.keys(layers);
     map.removeLayer(layers[keys[curL]].layer);
@@ -293,38 +262,17 @@
     layers[keys[curL]].layer.addTo(map);
     updateStatus(layers[keys[curL]].name);
   };
-
   document.getElementById('nav-draw').onclick = () => toggleDrawMode();
   document.getElementById('nav-history').onclick = () => document.getElementById('drawer').classList.add('open');
 
-  /* ── DRAWER GESTURES ── */
+  /* ── DRAWER ── */
   const drawer = document.getElementById('drawer');
-  let startY = 0, currentY = 0;
-
-  drawer.addEventListener('touchstart', (e) => { 
-    if(e.target.tagName === 'INPUT') return;
-    startY = e.touches[0].clientY; 
-  }, {passive: true});
-  
-  drawer.addEventListener('touchmove', (e) => {
-    if(e.target.tagName === 'INPUT') return;
-    currentY = e.touches[0].clientY;
-    const diff = currentY - startY;
-    if (diff > 0 && drawer.classList.contains('open')) {
-      drawer.style.transform = `translateY(calc(-100% + ${diff}px))`;
-    }
-  }, {passive: true});
-
-  drawer.addEventListener('touchend', (e) => {
-    if(e.target.tagName === 'INPUT') return;
-    const diff = currentY - startY;
-    drawer.style.transform = '';
-    if (diff > 100) drawer.classList.remove('open');
-    startY = 0; currentY = 0;
-  });
-
+  let startY = 0;
   document.getElementById('drawer-handle').onclick = () => drawer.classList.remove('open');
+  drawer.addEventListener('touchstart', (e) => { if(e.target.closest('#land-list') || e.target.tagName === 'INPUT') return; startY = e.touches[0].clientY; }, {passive: true});
+  drawer.addEventListener('touchmove', (e) => { if(e.target.closest('#land-list') || e.target.tagName === 'INPUT') return; let moveY = e.touches[0].clientY; if (moveY - startY > 50) drawer.classList.remove('open'); }, {passive: true});
 
+  /* ── DRAWING ── */
   function toggleDrawMode(off = false) {
     drawMode = off ? false : !drawMode;
     document.getElementById('nav-draw').classList.toggle('draw-active', drawMode);
@@ -332,12 +280,9 @@
     updateStatus(drawMode ? "Режим черчения" : "Обзор");
   }
 
-  /* ── DRAWING ── */
   map.on('click', (e) => {
     if(!drawMode) return;
-    if(tempPoints.length > 2 && map.latLngToLayerPoint(tempPoints[0]).distanceTo(map.latLngToLayerPoint(e.latlng)) < 30) {
-      showSaveModal(); return;
-    }
+    if(tempPoints.length > 2 && map.latLngToLayerPoint(tempPoints[0]).distanceTo(map.latLngToLayerPoint(e.latlng)) < 30) { showSaveModal(); return; }
     const m = L.marker(e.latlng, {draggable:true, icon:L.divIcon({className:'dot-marker', iconSize:[14,14]})}).addTo(map);
     m.on('drag', () => { tempPoints[tempMarkers.indexOf(m)] = m.getLatLng(); tempLine.setLatLngs(tempPoints); });
     tempMarkers.push(m); tempPoints.push(e.latlng); tempLine.setLatLngs(tempPoints);
@@ -346,159 +291,95 @@
   /* ── MODAL ── */
   const overlay = document.getElementById('modal-overlay');
   const colorOpts = document.querySelectorAll('.color-opt');
-  
-  colorOpts.forEach(opt => opt.onclick = () => {
-    colorOpts.forEach(o => o.classList.remove('selected'));
-    opt.classList.add('selected');
-    selectedColor = opt.dataset.color;
-    document.getElementById('inp-group-name').value = GROUP_NAMES[selectedColor] || "";
-  });
+  colorOpts.forEach(opt => opt.onclick = () => { colorOpts.forEach(o => o.classList.remove('selected')); opt.classList.add('selected'); selectedColor = opt.dataset.color; });
 
   function showSaveModal() {
     overlay.style.display = 'flex';
-    document.getElementById('inp-land-name').value = `Участок ${lands.length + 1}`;
+    document.getElementById('inp-land-name').value = ""; // Оставляем пустым для ручного ввода
     document.getElementById('inp-group-name').value = GROUP_NAMES[selectedColor] || "";
+    document.getElementById('inp-land-note').value = "";
   }
-
   document.getElementById('btn-modal-cancel').onclick = () => overlay.style.display = 'none';
 
   document.getElementById('btn-modal-save').onclick = () => {
-    const name = document.getElementById('inp-land-name').value || "Без названия";
-    const gName = document.getElementById('inp-group-name').value || "Общая";
+    const name = document.getElementById('inp-land-name').value.trim() || `Участок ${lands.length + 1}`;
+    const gName = document.getElementById('inp-group-name').value.trim() || "Общая";
+    const note = document.getElementById('inp-land-note').value.trim() || "";
     GROUP_NAMES[selectedColor] = gName;
     const hex = COLOR_PALETTE[selectedColor];
     const poly = L.polygon(tempPoints, {color: hex, weight: 3, fillOpacity: 0.3}).addTo(map);
-    const center = poly.getBounds().getCenter();
-    lands.push({ id: Date.now(), name, gName, poly, center, coords: [...tempPoints], color: hex });
+    lands.push({ id: Date.now(), name, gName, note, poly, center: poly.getBounds().getCenter(), coords: [...tempPoints], color: hex });
     updateLandList();
     overlay.style.display = 'none';
     toggleDrawMode(true);
     updateStatus("Сохранено");
   };
 
-  /* ── SEARCH LOGIC ── */
-  document.getElementById('search-land').addEventListener('input', (e) => {
-    updateLandList(e.target.value.toLowerCase());
-  });
-
-  /* ── EXPORT PDF ── */
-  async function exportToPDF() {
-    if (lands.length === 0) { updateStatus("Журнал пуст"); return; }
-    updateStatus("Подготовка PDF...");
-    
-    const element = document.createElement('div');
-    element.className = 'pdf-export-container';
-    element.innerHTML = `<h1 style="text-align:center">Отчет LAND BASE 2026</h1><p style="text-align:center">${new Date().toLocaleString()}</p>`;
-    
-    lands.forEach(l => {
-        const item = document.createElement('div');
-        item.className = 'pdf-item';
-        item.innerHTML = `
-            <div class="pdf-thumb">${getThumb(l.coords, l.color)}</div>
-            <div class="pdf-info">
-                <h2>${l.name}</h2>
-                <p>Группа: ${l.gName}</p>
-                <p>Центр: ${l.center.lat.toFixed(6)}, ${l.center.lng.toFixed(6)}</p>
-            </div>
-        `;
-        element.appendChild(item);
-    });
-
-    const opt = {
-      margin: 10,
-      filename: `land_report_${Date.now()}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
-
-    try {
-        await html2pdf().set(opt).from(element).save();
-        updateStatus("PDF Готов");
-    } catch (e) {
-        updateStatus("Ошибка экспорта");
-    }
-  }
-
-  /* ── UTILS ── */
+  /* ── UTILS & EXPORT ── */
   function getThumb(coords, color) {
     const lats = coords.map(c => c.lat), lngs = coords.map(c => c.lng);
     const minLat = Math.min(...lats), maxLat = Math.max(...lats), minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
-    const rLat = maxLat - minLat || 0.00001, rLng = maxLng - minLng || 0.00001;
-    const pts = coords.map(c => `${((c.lng-minLng)/rLng)*100},${100-((c.lat-minLat)/rLat)*100}`).join(' ');
-    return `<svg viewBox="-10 -10 120 120" xmlns="http://www.w3.org/2000/svg"><polygon points="${pts}" fill="${color}" fill-opacity="0.3" stroke="${color}" stroke-width="8" stroke-linejoin="round"/></svg>`;
+    const rLat = maxLat - minLat || 0.0001, rLng = maxLng - minLng || 0.0001;
+    const pts = coords.map(c => `${((c.lng-minLng)/rLng)*80+10},${90-((c.lat-minLat)/rLat)*80}`).join(' ');
+    return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M0 0h100v100H0z" fill="#2c2c2e"/><polygon points="${pts}" fill="${color}" fill-opacity="0.4" stroke="${color}" stroke-width="3" stroke-linejoin="round"/></svg>`;
   }
-
-  window.copyCoords = (lat, lng) => {
-    const str = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-    navigator.clipboard.writeText(str).then(() => updateStatus("Координаты скопированы"));
-  };
 
   function updateLandList(query = '') {
     const container = document.getElementById('land-list');
     container.innerHTML = '';
-    
-    const filtered = lands.filter(l => l.name.toLowerCase().includes(query) || l.gName.toLowerCase().includes(query));
-
-    if (filtered.length === 0 && query !== '') {
-        container.innerHTML = '<div style="text-align:center; opacity:0.4; margin-top:20px;">Ничего не найдено</div>';
-        return;
-    }
-
+    const filtered = lands.filter(l => l.name.toLowerCase().includes(query.toLowerCase()) || l.gName.toLowerCase().includes(query.toLowerCase()));
     filtered.forEach(l => {
       const card = document.createElement('div');
       card.className = 'land-card';
       card.innerHTML = `
-        <div class="land-preview">${getThumb(l.coords, l.color)}</div>
-        <div class="land-info">
-          <div onclick="focusLand(${l.id})">
-            <h4>${l.name}</h4>
-            <p style="color:${l.color}">${l.gName}</p>
-          </div>
-          <div class="coords-text" onclick="copyCoords(${l.center.lat}, ${l.center.lng})">
-            ${l.center.lat.toFixed(6)}, ${l.center.lng.toFixed(6)}
-          </div>
+        <div class="land-preview" onclick="focusLand(${l.id})">${getThumb(l.coords, l.color)}</div>
+        <div class="land-info" onclick="focusLand(${l.id})">
+          <h4>${l.name}</h4>
+          <p style="color:${l.color}">${l.gName}</p>
+          <div class="land-comment">${l.note}</div>
+          <div class="coords-text">${l.center.lat.toFixed(6)}, ${l.center.lng.toFixed(6)}</div>
         </div>
-        <div class="land-actions">
-          <button class="action-btn" style="background:${l.color}22; color:${l.color}" onclick="renameLand(${l.id})">✎</button>
-          <button class="action-btn" style="background:rgba(255,69,58,0.2); color:var(--danger)" onclick="deleteLand(${l.id})">✕</button>
-        </div>`;
+        <button class="action-btn" style="background:rgba(255,69,58,0.15); color:var(--danger); border:none; width:36px; height:36px; border-radius:10px;" onclick="deleteLand(${l.id})">✕</button>`;
       container.appendChild(card);
     });
   }
 
-  window.focusLand = (id) => {
-    const l = lands.find(x => x.id === id);
-    map.flyToBounds(l.poly.getBounds(), {padding:[50,50], duration:1.2});
-    drawer.classList.remove('open');
-  };
-
-  window.deleteLand = (id) => {
-    if(!confirm("Удалить?")) return;
-    const idx = lands.findIndex(x => x.id === id);
-    map.removeLayer(lands[idx].poly);
-    lands.splice(idx, 1);
-    updateLandList(document.getElementById('search-land').value.toLowerCase());
-  };
-
-  window.renameLand = (id) => {
-    const l = lands.find(x => x.id === id);
-    const n = prompt("Новое имя:", l.name);
-    if(n) { 
-        l.name = n; 
-        updateLandList(document.getElementById('search-land').value.toLowerCase()); 
-    }
-  };
-
-  function clearTemp() { tempMarkers.forEach(m => map.removeLayer(m)); tempMarkers = []; tempPoints = []; tempLine.setLatLngs([]); }
-  
-  function updateStatus(t) { 
-    const el = document.getElementById('status-text');
-    const container = document.getElementById('status-container');
-    el.textContent = t;
-    container.style.transform = 'translateX(-50%) scale(1.05)';
-    setTimeout(() => container.style.transform = 'translateX(-50%) scale(1)', 200);
+  async function exportToPDF() {
+    if (!lands.length) { updateStatus("Журнал пуст"); return; }
+    updateStatus("Подготовка PDF...");
+    const element = document.createElement('div');
+    element.className = 'pdf-export-container';
+    element.innerHTML = `<h1 style="border-bottom:2px solid #000; padding-bottom:10px;">Отчет LAND BASE 2026</h1><p>Создан: ${new Date().toLocaleString()}</p>`;
+    lands.forEach(l => {
+      const item = document.createElement('div');
+      item.className = 'pdf-item';
+      item.innerHTML = `
+        <div class="pdf-thumb">${getThumb(l.coords, l.color).replace('#2c2c2e', '#f0f0f0')}</div>
+        <div class="pdf-info">
+          <span class="pdf-tag" style="background:${l.color}; color:${l.color === '#ffd60a' ? '#000' : '#fff'}">${l.gName}</span>
+          <h2>${l.name}</h2>
+          <p><b>Координаты центра:</b> ${l.center.lat.toFixed(6)}, ${l.center.lng.toFixed(6)}</p>
+          <p><b>Заметка:</b> ${l.note || 'Нет'}</p>
+        </div>`;
+      element.appendChild(item);
+    });
+    const opt = { margin: 10, filename: `Land_Report_${Date.now()}.pdf`, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+    await html2pdf().set(opt).from(element).save();
+    updateStatus("PDF скачан");
   }
+
+  window.focusLand = (id) => { const l = lands.find(x => x.id === id); map.flyToBounds(l.poly.getBounds(), {padding:[50,50], duration:1.2}); drawer.classList.remove('open'); };
+  window.deleteLand = (id) => { if(!confirm("Удалить?")) return; const idx = lands.findIndex(x => x.id === id); map.removeLayer(lands[idx].poly); lands.splice(idx, 1); updateLandList(); };
+  function clearTemp() { tempMarkers.forEach(m => map.removeLayer(m)); tempMarkers = []; tempPoints = []; tempLine.setLatLngs([]); }
+  function updateStatus(t) { const el = document.getElementById('status-text'); el.textContent = t; }
+  document.getElementById('search-land').oninput = (e) => updateLandList(e.target.value);
+
+  map.on('locationfound', (e) => {
+    if (userMarker) { map.removeLayer(userMarker); map.removeLayer(userCircle); }
+    userCircle = L.circle(e.latlng, e.accuracy, { color: 'var(--accent-blue)', fillOpacity: 0.1, weight: 1 }).addTo(map);
+    userMarker = L.marker(e.latlng, { icon: L.divIcon({ className: 'user-location-marker', iconSize: [18, 18] }) }).addTo(map);
+    updateStatus("Геопозиция активна");
+  });
 </script>
 
 </body>
