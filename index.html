@@ -89,18 +89,19 @@
 
   /* ── TAB BAR ── */
   #tab-bar {
-    position: absolute; bottom: 30px; left: 20px; right: 20px;
+    position: absolute; bottom: 30px; left: 15px; right: 15px;
     height: 84px; background: var(--ios-glass);
     backdrop-filter: blur(25px) saturate(180%);
     border-radius: 35px; z-index: 100;
     display: flex; justify-content: space-around; align-items: center;
     border: 1px solid rgba(255,255,255,0.08);
+    padding: 0 10px;
   }
-  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 5px; color: rgba(255,255,255,0.5); cursor: pointer; }
+  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 5px; color: rgba(255,255,255,0.5); cursor: pointer; flex: 1; }
   .nav-item.active { color: var(--accent); }
   .nav-item.draw-active { color: var(--accent-blue); }
-  .nav-item svg { width: 26px; height: 26px; }
-  .nav-item span { font-size: 10px; }
+  .nav-item svg { width: 24px; height: 24px; }
+  .nav-item span { font-size: 9px; font-weight: 500; }
 
   /* ── DRAWER ── */
   #drawer {
@@ -228,6 +229,10 @@
     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
     <span>Чертить</span>
   </div>
+  <div class="nav-item" id="nav-clear" style="color: var(--danger);">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+    <span>Очистить</span>
+  </div>
   <div class="nav-item" id="nav-history">
     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
     <span>Журнал</span>
@@ -253,6 +258,38 @@
   let selectedColor = 'green';
   let userMarker, userCircle;
 
+  // Инициализация при загрузке
+  window.onload = () => {
+    loadLands();
+    updateLandList();
+  };
+
+  /* ── PERSISTENCE (СОХРАНЕНИЕ) ── */
+  function saveLands() {
+    // Сохраняем только данные (без объектов Leaflet)
+    const dataToSave = lands.map(l => ({
+      id: l.id,
+      name: l.name,
+      gName: l.gName,
+      note: l.note,
+      coords: l.coords,
+      color: l.color,
+      center: l.center
+    }));
+    localStorage.setItem('land_base_data', JSON.stringify(dataToSave));
+  }
+
+  function loadLands() {
+    const saved = localStorage.getItem('land_base_data');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      parsed.forEach(data => {
+        const poly = L.polygon(data.coords, {color: data.color, weight: 3, fillOpacity: 0.3}).addTo(map);
+        lands.push({ ...data, poly });
+      });
+    }
+  }
+
   /* ── NAVIGATION ── */
   document.getElementById('nav-locate').onclick = () => { map.locate({setView: true, maxZoom: 16}); updateStatus("Поиск GPS..."); };
   document.getElementById('nav-layers').onclick = () => {
@@ -264,6 +301,20 @@
   };
   document.getElementById('nav-draw').onclick = () => toggleDrawMode();
   document.getElementById('nav-history').onclick = () => document.getElementById('drawer').classList.add('open');
+
+  /* ── ADMIN CLEAR (ОЧИСТКА ПО ПАРОЛЮ) ── */
+  document.getElementById('nav-clear').onclick = () => {
+    const pass = prompt("Введите ПАРОЛЬ АДМИНИСТРАТОРА для ПОЛНОГО удаления всех данных:");
+    if (pass === "1111") {
+      lands.forEach(l => map.removeLayer(l.poly));
+      lands = [];
+      localStorage.removeItem('land_base_data'); // Стираем память
+      updateLandList();
+      updateStatus("БАЗА ОЧИЩЕНА АДМИНОМ");
+    } else if (pass !== null) {
+      alert("Доступ запрещен. Неверный пароль.");
+    }
+  };
 
   /* ── DRAWER ── */
   const drawer = document.getElementById('drawer');
@@ -295,7 +346,7 @@
 
   function showSaveModal() {
     overlay.style.display = 'flex';
-    document.getElementById('inp-land-name').value = ""; // Оставляем пустым для ручного ввода
+    document.getElementById('inp-land-name').value = "";
     document.getElementById('inp-group-name').value = GROUP_NAMES[selectedColor] || "";
     document.getElementById('inp-land-note').value = "";
   }
@@ -308,11 +359,13 @@
     GROUP_NAMES[selectedColor] = gName;
     const hex = COLOR_PALETTE[selectedColor];
     const poly = L.polygon(tempPoints, {color: hex, weight: 3, fillOpacity: 0.3}).addTo(map);
-    lands.push({ id: Date.now(), name, gName, note, poly, center: poly.getBounds().getCenter(), coords: [...tempPoints], color: hex });
+    const newLand = { id: Date.now(), name, gName, note, poly, center: poly.getBounds().getCenter(), coords: [...tempPoints], color: hex };
+    lands.push(newLand);
+    saveLands(); // Сохраняем в код (localStorage)
     updateLandList();
     overlay.style.display = 'none';
     toggleDrawMode(true);
-    updateStatus("Сохранено");
+    updateStatus("Сохранено локально");
   };
 
   /* ── UTILS & EXPORT ── */
@@ -369,7 +422,7 @@
   }
 
   window.focusLand = (id) => { const l = lands.find(x => x.id === id); map.flyToBounds(l.poly.getBounds(), {padding:[50,50], duration:1.2}); drawer.classList.remove('open'); };
-  window.deleteLand = (id) => { if(!confirm("Удалить?")) return; const idx = lands.findIndex(x => x.id === id); map.removeLayer(lands[idx].poly); lands.splice(idx, 1); updateLandList(); };
+  window.deleteLand = (id) => { if(!confirm("Удалить этот участок?")) return; const idx = lands.findIndex(x => x.id === id); map.removeLayer(lands[idx].poly); lands.splice(idx, 1); saveLands(); updateLandList(); };
   function clearTemp() { tempMarkers.forEach(m => map.removeLayer(m)); tempMarkers = []; tempPoints = []; tempLine.setLatLngs([]); }
   function updateStatus(t) { const el = document.getElementById('status-text'); el.textContent = t; }
   document.getElementById('search-land').oninput = (e) => updateLandList(e.target.value);
