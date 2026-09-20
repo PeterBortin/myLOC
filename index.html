@@ -120,8 +120,16 @@ body.crt .crt-scanlines{opacity:1}
   background:var(--bg-card);border-top:1px solid var(--border-color);
   padding:5px 5px calc(5px + env(safe-area-inset-bottom,0px));
 }
-#cmd-row{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
-#cmd .btn{padding:8px 2px;text-align:center;font-size:10px;letter-spacing:-.03em}
+#cmd-row{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+#cmd .btn{padding:11px 2px;text-align:center;font-size:12px;letter-spacing:.02em}
+#rail{
+  position:absolute;right:0;top:34%;z-index:470;display:flex;flex-direction:column;gap:6px;
+}
+#rail .btn{
+  padding:9px 5px;font-size:10px;line-height:1.25;text-align:center;border-right:0;
+  background:var(--bg-card);box-shadow:-3px 0 12px rgba(0,0,0,.6);
+}
+#rail .btn.on{background:var(--selection-bg);color:var(--selection-text)}
 #attrib{font-size:8px;color:var(--text-dim);opacity:.65;text-align:center;padding-top:3px;letter-spacing:0}
 
 /* ═══ ПАНЕЛЬ МАЛЮВАННЯ ═══ */
@@ -259,13 +267,15 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--text
 <!-- ═══ КОМАНДНА ПАНЕЛЬ ═══ -->
 <div id="cmd">
   <div id="cmd-row">
-    <button class="btn" id="c-geo">⌖<br>ГЕО</button>
-    <button class="btn" id="c-layers">▤<br>ШАРИ</button>
-    <button class="btn" id="c-draw">✎<br>МАЛЮВАТИ</button>
-    <button class="btn" id="c-log">☰<br>ЖУРНАЛ</button>
-    <button class="btn" id="c-3d">▲<br>РЕЛЬЄФ</button>
+    <button class="btn" id="c-draw">✎ МАЛЮВАТИ</button>
+    <button class="btn" id="c-log">☰ ЖУРНАЛ</button>
   </div>
-  <div id="attrib">© OpenStreetMap · CARTO · Esri · AWS Terrain</div>
+  <div id="attrib">© Esri · OpenStreetMap · Overpass · AWS Terrain</div>
+</div>
+
+<div id="rail">
+  <button class="btn" id="c-layers">▤<br>Ш<br>А<br>Р<br>И</button>
+  <button class="btn" id="c-geo">⌖<br>Я<br>Т<br>У<br>Т</button>
 </div>
 
 <div id="scrim"></div>
@@ -371,6 +381,13 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--text
     <div class="r"><span class="k">підпис на мапі</span><span class="chk on" id="f-label">[x]</span></div>
     <div class="r"><span class="k">показувати обʼєкт</span><span class="chk on" id="f-visible">[x]</span></div>
 
+    <div class="sec" id="s-drape">// НАПОВНЕННЯ ПОЛІГОНА</div>
+    <div class="r" id="r-sat"><span class="k">супутник у межах полігона</span><span class="chk" id="f-sat">[ ]</span></div>
+    <div class="r" id="r-bld"><span class="k">3D-будівлі (OSM/Overpass)</span><span class="chk" id="f-bld">[ ]</span></div>
+    <div class="r" id="r-dz"><span class="k">деталізація знімка</span><span class="v" id="v-dz">z17</span></div>
+    <input type="range" id="rg-dz" min="14" max="18" step="1" value="17">
+    <pre class="dim" id="drape-log" style="font-size:9.5px;white-space:pre-wrap;margin:0 0 6px">└─ знімок ріжеться точно по контуру і лягає на рельєф, обʼєкти малюються вище</pre>
+
     <div class="sec">// ПРІОРИТЕТ</div>
     <div class="opts" id="f-prio">
       <button class="btn" data-prio="low">[ ЗВИЧАЙНИЙ ]</button>
@@ -439,7 +456,8 @@ let objects=[],groups=[],draft=null,vxm=[],objm=[],runners={},cur=null,curNew=fa
 let selectedId=null,filter='all',query='',antsPhase=0,lastTick=0,mv=null;
 let cfg={base:'dark',terrain:true,exag:1.4,pitch:62,hill:.35,grid:false,mono:true,crt:true,theme:'green',url:''};
 let lastStyle={color:'#00ff66',width:3,dash:'solid',opacity:1,fill:true,fillOpacity:.25,head:1,size:1,
-  label:true,prio:'low',glyph:'◆',arrowType:'classic',anim:'none',speed:1,inherit:false};
+  label:true,prio:'low',glyph:'◆',arrowType:'classic',anim:'none',speed:1,inherit:false,
+  sat:false,bld:false,dz:17};
 
 try{objects=JSON.parse(localStorage.getItem(LS.obj))||[]}catch(e){}
 try{groups=JSON.parse(localStorage.getItem(LS.grp))||[]}catch(e){}
@@ -510,14 +528,12 @@ const visEff=o=>o.visible&&gVis(o.groupId);
 const colorOf=o=>(o.st.inherit&&gColor(o.groupId))||o.st.color;
 
 /* ─── СТИЛЬ МАПИ ─── */
+const SAT_TILE='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 const BASES={
-  dark:{n:'ТЕМНА (CARTO)',src:{type:'raster',tileSize:256,maxzoom:19,tiles:[
-    'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
-    'https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png',
-    'https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}@2x.png']}},
-  sat:{n:'СУПУТНИК (ESRI)',src:{type:'raster',tileSize:256,maxzoom:18,tiles:[
-    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}']}},
-  none:{n:'БЕЗ ПІДКЛАДКИ (ЧИСТИЙ РЕЛЬЄФ)',src:null},
+  dark:{n:'ТЕМНА + РЕЛЬЄФ',src:{type:'raster',tileSize:256,maxzoom:16,tiles:[
+    'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}']}},
+  sat:{n:'СУПУТНИК + РЕЛЬЄФ',src:{type:'raster',tileSize:256,maxzoom:18,tiles:[SAT_TILE]}},
+  none:{n:'ТІЛЬКИ РЕЛЬЄФ',src:null},
   custom:{n:'ВЛАСНЕ ДЖЕРЕЛО',src:null}
 };
 const EMPTY={type:'FeatureCollection',features:[]};
@@ -534,6 +550,7 @@ const STYLE={version:8,sources:{
       'hillshade-shadow-color':'#000','hillshade-highlight-color':'#6fffa8','hillshade-accent-color':'#03150a'}},
     {id:'l-grid',type:'line',source:'grid',layout:{visibility:'none'},
       paint:{'line-color':'#5effa8','line-width':.6,'line-opacity':.28}},
+    {id:'anchor-extras',type:'background',layout:{visibility:'none'},paint:{'background-color':'#000'}},
     {id:'obj-sel',type:'line',source:'objects',filter:['==',['get','sel'],true],
       layout:{'line-cap':'round','line-join':'round'},
       paint:{'line-color':'#ffffff','line-width':['+',['get','width'],8],'line-opacity':.25,'line-blur':3}},
@@ -644,7 +661,7 @@ function renderMarkers(){
     }
   });
 }
-function render(){setData(performance.now()/1000);renderMarkers();renderTree();idle()}
+function render(){setData(performance.now()/1000);renderMarkers();renderTree();syncExtras();idle()}
 
 /* ─── АНІМАЦІЯ ─── */
 function animLoop(ts){
@@ -798,6 +815,8 @@ function openObj(o,isNew){
   show('r-size',t==='marker');show('rg-size',t==='marker');
   show('s-anim',t!=='marker');show('f-anim',t!=='marker');
   show('r-speed',t!=='marker');show('rg-speed',t!=='marker');
+  show('s-drape',t==='polygon');show('r-sat',t==='polygon');show('r-bld',t==='polygon');
+  show('r-dz',t==='polygon');show('rg-dz',t==='polygon');show('drape-log',t==='polygon');
   show('s-geom',!isNew);show('btn-geom',!isNew);
   g('btn-del').style.display=isNew?'none':'';
   paintColor();
@@ -816,6 +835,9 @@ function openObj(o,isNew){
   chk('f-label',s.label,v=>{cur.st.label=v;previewLive()});
   chk('f-visible',cur.visible,v=>{cur.visible=v;previewLive()});
   chk('f-inherit',s.inherit,v=>{cur.st.inherit=v;previewLive()});
+  chk('f-sat',s.sat,v=>cur.st.sat=v);
+  chk('f-bld',s.bld,v=>cur.st.bld=v);
+  rng('dz',s.dz||17,v=>'z'+v,v=>cur.st.dz=v);
   open('p-obj');previewLive();
 }
 /* живий перегляд змін просто на мапі */
@@ -1026,7 +1048,6 @@ function applyTerrain(on){
   map.setTerrain(on?{source:'dem',exaggeration:cfg.exag}:null);
   map.setLayoutProperty('l-hill','visibility',on?'visible':'none');
   const e=g('t-terrain');e.textContent=on?'[x]':'[ ]';e.classList.toggle('on',on);
-  g('c-3d').classList.toggle('on',on);
   map.easeTo({pitch:on?(cfg.pitch||60):0,duration:700});save();
 }
 
@@ -1076,19 +1097,22 @@ g('file-in').onchange=e=>{
 g('c-layers').onclick=()=>{baseList();open('p-layers')};
 g('c-log').onclick=()=>{renderTree();open('p-log')};
 g('c-draw').onclick=()=>{if(draft)cancelDraw();else open('p-tools')};
-g('c-3d').onclick=()=>{applyTerrain(!cfg.terrain);st(cfg.terrain?'гори на місці, йдемо в 3d':'все, плоскій світ')};
-let me=null;
-g('c-geo').onclick=()=>{
-  if(!navigator.geolocation){st('геолокації тут нема');return}
+let me=null,myPos=null;
+function askGeo(auto){
+  if(!navigator.geolocation){if(!auto)st('геолокації тут нема');return}
+  if(!auto&&myPos){map.flyTo({center:myPos,zoom:Math.max(map.getZoom(),14.5),duration:900});st('ти тут, я бачу');return}
   st('ловлю супутники…',1);
   navigator.geolocation.getCurrentPosition(pos=>{
-    const p=[pos.coords.longitude,pos.coords.latitude];
+    myPos=[pos.coords.longitude,pos.coords.latitude];
     if(me)me.remove();
     const el=document.createElement('div');el.id='me';el.textContent='⌖';
-    me=new maplibregl.Marker({element:el,anchor:'center'}).setLngLat(p).addTo(map);
-    map.flyTo({center:p,zoom:Math.max(map.getZoom(),14.5),duration:1200});st('ти тут, я бачу');
-  },()=>st('gps кобенится — дай дозвіл або став вручну'),{enableHighAccuracy:true,timeout:9000});
-};
+    me=new maplibregl.Marker({element:el,anchor:'center'}).setLngLat(myPos).addTo(map);
+    if(!auto||!localStorage.getItem(LS.view))map.flyTo({center:myPos,zoom:Math.max(map.getZoom(),14.5),duration:1200});
+    st(auto?'позицію взяв, мітка ⌖ на мапі':'ти тут, я бачу');
+  },()=>st(auto?'без гео поки що — кнопка ⌖ праворуч, як передумаєш':'gps кобенится — дай дозвіл або став вручну'),
+  {enableHighAccuracy:true,timeout:10000});
+}
+g('c-geo').onclick=()=>askGeo(false);
 map.on('click',e=>{
   if(draft){addPoint(e.lngLat);return}
   const p=14,box=[[e.point.x-p,e.point.y-p],[e.point.x+p,e.point.y+p]];
@@ -1137,8 +1161,122 @@ map.on('load',()=>{
   g('map').style.filter=cfg.mono?'saturate(.55) contrast(1.05)':'none';
   document.querySelectorAll('[data-f]').forEach(x=>x.classList.toggle('on',x.dataset.f==='all'));
   buildGrid();render();logSrc('старт ok');
+  setTimeout(()=>askGeo(true),700);
   st(objects.length?'з поверненням. журнал на місці':'тайли доїхали. малюй');
 });
+
+/* ═══════════ НАПОВНЕННЯ ПОЛІГОНІВ: СУПУТНИК У КОНТУРІ + 3D-БУДІВЛІ ═══════════ */
+const extras={},hidden=document.createElement('div');
+hidden.style.cssText='position:absolute;left:-99999px;top:0;width:1px;height:1px;overflow:hidden';
+document.body.appendChild(hidden);
+const mx=l=>(l+180)/360;
+const my=l=>{const s=Math.sin(rad(Math.max(-85,Math.min(85,l))));return .5-Math.log((1+s)/(1-s))/(4*Math.PI)};
+const lngOf=(x,z)=>x/Math.pow(2,z)*360-180;
+const latOf=(y,z)=>deg(Math.atan(Math.sinh(Math.PI-2*Math.PI*y/Math.pow(2,z))));
+function dlog(t){const e=g('drape-log');if(e)e.textContent='└─ '+t}
+function sig(o,kind){
+  const c=o.coords.map(p=>p[0].toFixed(5)+p[1].toFixed(5)).join('');
+  return kind+':'+(kind==='sat'?(o.st.dz||17):'')+':'+c;
+}
+function loadImg(url){return new Promise(res=>{
+  const i=new Image();i.crossOrigin='anonymous';
+  i.onload=()=>res(i);i.onerror=()=>res(null);i.src=url;});}
+
+async function buildSatCanvas(coords,z){
+  const lngs=coords.map(p=>p[0]),lats=coords.map(p=>p[1]);
+  const w=Math.min(...lngs),e=Math.max(...lngs),s2=Math.min(...lats),n=Math.max(...lats);
+  let x0,x1,y0,y1;
+  for(;z>=12;z--){
+    x0=Math.floor(mx(w)*Math.pow(2,z));x1=Math.floor(mx(e)*Math.pow(2,z));
+    y0=Math.floor(my(n)*Math.pow(2,z));y1=Math.floor(my(s2)*Math.pow(2,z));
+    if((x1-x0+1)*(y1-y0+1)<=64)break;
+  }
+  const TS=256,cv=document.createElement('canvas');
+  cv.width=(x1-x0+1)*TS;cv.height=(y1-y0+1)*TS;
+  const ctx=cv.getContext('2d');
+  const jobs=[];
+  for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++)jobs.push({x,y});
+  dlog('клею мозаїку: '+jobs.length+' тайлів (z'+z+')');
+  let done=0;
+  for(let i=0;i<jobs.length;i+=8){
+    const part=jobs.slice(i,i+8);
+    const imgs=await Promise.all(part.map(t=>loadImg(SAT_TILE.replace('{z}',z).replace('{x}',t.x).replace('{y}',t.y))));
+    imgs.forEach((im,k)=>{if(im)ctx.drawImage(im,(part[k].x-x0)*TS,(part[k].y-y0)*TS,TS,TS);done++});
+    dlog('тайли: '+done+'/'+jobs.length);
+  }
+  ctx.globalCompositeOperation='destination-in';
+  ctx.beginPath();
+  ring(coords).forEach((p,i)=>{
+    const px=(mx(p[0])*Math.pow(2,z)-x0)*TS,py=(my(p[1])*Math.pow(2,z)-y0)*TS;
+    i?ctx.lineTo(px,py):ctx.moveTo(px,py);
+  });
+  ctx.closePath();ctx.fillStyle='#fff';ctx.fill();
+  ctx.globalCompositeOperation='source-over';
+  hidden.appendChild(cv);
+  return {cv,coordinates:[[lngOf(x0,z),latOf(y0,z)],[lngOf(x1+1,z),latOf(y0,z)],
+                          [lngOf(x1+1,z),latOf(y1+1,z)],[lngOf(x0,z),latOf(y1+1,z)]]};
+}
+async function ensureSat(o){
+  const id='sat-'+o.id,sg=sig(o,'sat');
+  if(extras[id]&&extras[id].sg===sg)return;
+  dropExtra(id);extras[id]={sg,busy:1};
+  st('тягну супутник на «'+(o.name||'полігон')+'»…',1);
+  try{
+    const r=await buildSatCanvas(o.coords,Math.round(o.st.dz||17));
+    if(map.getSource(id))return;
+    map.addSource(id,{type:'canvas',canvas:r.cv,coordinates:r.coordinates,animate:false});
+    map.addLayer({id:'l-'+id,type:'raster',source:id,
+      paint:{'raster-opacity':.95,'raster-fade-duration':0}},'anchor-extras');
+    extras[id].busy=0;dlog('знімок ліг по контуру');st('знімок ліг по контуру');
+  }catch(err){delete extras[id];dlog('знімок не зайшов: '+err);st('знімок не зайшов, спробуй нижчу деталізацію')}
+}
+async function ensureBld(o){
+  const id='bld-'+o.id,sg=sig(o,'bld');
+  if(extras[id]&&extras[id].sg===sg)return;
+  dropExtra(id);extras[id]={sg,busy:1};
+  const poly=ring(o.coords).map(p=>p[1].toFixed(6)+' '+p[0].toFixed(6)).join(' ');
+  const q='[out:json][timeout:30];(way["building"](poly:"'+poly+'");relation["building"](poly:"'+poly+'"););out geom;';
+  st('питаю Overpass про будівлі…',1);dlog('Overpass: запит пішов');
+  try{
+    const res=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',
+      headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'data='+encodeURIComponent(q)});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const j=await res.json(),f=[];
+    const hOf=t=>{t=t||{};
+      const h=parseFloat(t.height||t['building:height']);
+      if(!isNaN(h))return h;
+      const lv=parseFloat(t['building:levels']);
+      return !isNaN(lv)?lv*3.2:8;};
+    (j.elements||[]).forEach(el=>{
+      const push=geo=>{if(!geo||geo.length<4)return;
+        f.push({type:'Feature',properties:{h:hOf(el.tags)},
+          geometry:{type:'Polygon',coordinates:[geo.map(p=>[p.lon,p.lat])]}})};
+      if(el.type==='way')push(el.geometry);
+      else if(el.type==='relation')(el.members||[]).filter(m=>m.role==='outer').forEach(m=>push(m.geometry));
+    });
+    if(map.getSource(id))return;
+    map.addSource(id,{type:'geojson',data:{type:'FeatureCollection',features:f}});
+    map.addLayer({id:'l-'+id,type:'fill-extrusion',source:id,paint:{
+      'fill-extrusion-color':colorOf(o),'fill-extrusion-height':['get','h'],
+      'fill-extrusion-base':0,'fill-extrusion-opacity':.72}},'anchor-extras');
+    extras[id].busy=0;dlog('будівель піднято: '+f.length);st('підняв '+f.length+' будівель');
+  }catch(err){delete extras[id];dlog('Overpass мовчить: '+err.message);st('Overpass мовчить, спробуй за хвилину')}
+}
+function dropExtra(id){
+  if(map.getLayer('l-'+id))map.removeLayer('l-'+id);
+  if(map.getSource(id))map.removeSource(id);
+  delete extras[id];
+}
+function syncExtras(){
+  const want={};
+  objects.forEach(o=>{
+    if(o.type!=='polygon'||!visEff(o))return;
+    if(o.st.sat){want['sat-'+o.id]=1;ensureSat(o)}
+    if(o.st.bld){want['bld-'+o.id]=1;ensureBld(o)}
+  });
+  Object.keys(extras).forEach(id=>{if(!want[id]&&!extras[id].busy)dropExtra(id)});
+}
+
 st('тайли їдуть, тримайся',1);
 </script>
 </body>
