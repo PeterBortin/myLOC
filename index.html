@@ -62,20 +62,13 @@ pre,code,input,select,textarea,button{font-family:'JetBrains Mono',ui-monospace,
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 .blink{animation:blink 1s steps(1) infinite}
 
-/* ═══ CRT ═══ */
-.crt-scanlines{
-  position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:0;transition:opacity .3s;
-  background:linear-gradient(rgba(18,16,16,0) 50%,rgba(0,0,0,.35) 50%),
-             linear-gradient(90deg,rgba(255,0,0,.03),rgba(0,255,0,.01),rgba(0,0,255,.03));
-  background-size:100% 4px,6px 100%;
-}
-body.crt .crt-scanlines{opacity:1}
-
 /* ═══ БАЗОВІ КОМПОНЕНТИ ═══ */
+.rule{flex:1;border-bottom:1px solid var(--border-color);opacity:.45;margin:0 7px 4px}
 .card{background:var(--bg-card);border:1px solid var(--border-color);box-shadow:0 0 10px var(--glow-color)}
 .btn{
   background:var(--bg-card);color:var(--text-main);border:1px solid var(--border-color);
-  padding:6px 8px;font-size:11px;font-weight:600;transition:all .12s;cursor:pointer;white-space:nowrap;
+  padding:8px 11px;min-height:34px;font-size:11px;font-weight:600;transition:all .12s;
+  cursor:pointer;white-space:nowrap;letter-spacing:.02em;
 }
 .btn:active{background:var(--bg-hover);color:var(--text-bright);border-color:var(--text-bright);transform:translateY(1px)}
 .btn.on{background:var(--selection-bg);color:var(--selection-text);border-color:var(--text-bright)}
@@ -83,7 +76,7 @@ body.crt .crt-scanlines{opacity:1}
 .btn[disabled]{opacity:.32}
 .inp{
   background:var(--bg-main);color:var(--text-bright);border:1px solid var(--border-color);
-  padding:8px 9px;font-size:16px;width:100%;-webkit-user-select:text;user-select:text;
+  padding:10px 11px;font-size:16px;width:100%;-webkit-user-select:text;user-select:text;
 }
 .inp:focus{border-color:var(--accent-color);box-shadow:0 0 6px var(--glow-color)}
 .dim{color:var(--text-dim)}
@@ -99,15 +92,15 @@ body.crt .crt-scanlines{opacity:1}
 #top{
   position:absolute;top:0;left:0;right:0;z-index:500;
   background:var(--bg-card);border-bottom:1px solid var(--border-color);
-  padding:calc(4px + env(safe-area-inset-top,0px)) 8px 4px;
+  padding:calc(6px + env(safe-area-inset-top,0px)) 11px 6px;
 }
 #top-1{display:flex;align-items:center;gap:6px;font-size:11px}
 #brand{font-weight:800;color:var(--text-bright);letter-spacing:.04em}
 #top-1 .sp{flex:1}
-.mini{padding:2px 5px;font-size:10px;border:1px solid var(--border-color);background:var(--bg-main);color:var(--text-dim);cursor:pointer}
+.mini{padding:3px 7px;font-size:10px;border:1px solid var(--border-color);background:var(--bg-main);color:var(--text-dim);cursor:pointer}
 .mini.on{color:var(--text-bright);border-color:var(--text-bright)}
 #status{
-  margin-top:3px;font-size:10.5px;color:var(--text-bright);
+  margin-top:5px;font-size:10.5px;color:var(--text-bright);
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 #status b{color:var(--accent-color);font-weight:600}
@@ -118,11 +111,11 @@ body.crt .crt-scanlines{opacity:1}
 #cmd{
   position:absolute;left:0;right:0;bottom:0;z-index:500;
   background:var(--bg-card);border-top:1px solid var(--border-color);
-  padding:5px 5px calc(5px + env(safe-area-inset-bottom,0px));
+  padding:8px 8px calc(7px + env(safe-area-inset-bottom,0px));
 }
-#cmd-row{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+#cmd-row{display:grid;grid-template-columns:1fr 1fr;gap:7px}
 #cmd .btn{padding:11px 2px;text-align:center;font-size:12px;letter-spacing:.02em}
-#rail{position:absolute;right:9px;top:29%;z-index:470;display:flex;flex-direction:column;gap:9px}
+#rail{position:absolute;right:10px;top:21%;z-index:470;display:flex;flex-direction:column;gap:10px}
 .rbtn{
   width:54px;height:54px;position:relative;background:var(--bg-card);
   border:1px solid var(--border-color);box-shadow:0 0 12px var(--glow-color);
@@ -137,20 +130,21 @@ body.crt .crt-scanlines{opacity:1}
 .rbtn.on{background:var(--selection-bg)}
 .rbtn.on .g,.rbtn.on .l{color:var(--selection-text)}
 .rbtn.live .g{color:var(--accent-color);text-shadow:0 0 8px var(--accent-color)}
-#attrib{font-size:8px;color:var(--text-dim);opacity:.65;text-align:center;padding-top:3px;letter-spacing:0}
+#attrib{font-size:8px;color:var(--text-dim);opacity:.6;text-align:center;padding-top:6px;letter-spacing:0}
 
 /* ═══ ПАНЕЛЬ МАЛЮВАННЯ ═══ */
 #draw{
-  position:absolute;left:5px;right:5px;bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:480;
+  position:absolute;left:8px;right:8px;bottom:calc(80px + env(safe-area-inset-bottom,0px));z-index:480;
   background:var(--bg-card);border:1px solid var(--accent-color);
-  box-shadow:0 0 14px var(--glow-color);display:none;padding:6px 7px;
+  box-shadow:0 0 14px var(--glow-color);display:none;padding:9px 10px 10px;
 }
 #draw.on{display:block}
-#draw-head{display:flex;align-items:center;gap:6px;font-size:10.5px;margin-bottom:6px}
+#draw-head{display:flex;align-items:center;gap:6px;font-size:11px;margin-bottom:8px}
 #draw-head .t{color:var(--text-bright);font-weight:600}
 #draw-head .n{margin-left:auto;color:var(--text-dim)}
-#draw-btns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}
-#draw-tip{font-size:9.5px;color:var(--text-dim);margin-top:5px;line-height:1.3}
+#draw-btns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+#draw-btns .btn{padding:10px 2px;text-align:center}
+#draw-tip{font-size:9.5px;color:var(--text-dim);margin-top:8px;line-height:1.45}
 
 /* ═══ ПАНЕЛІ / ВІКНА ═══ */
 #scrim{position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:opacity .2s}
@@ -164,27 +158,30 @@ body.crt .crt-scanlines{opacity:1}
 }
 .panel.open{transform:none}
 .p-head{
-  display:flex;align-items:center;gap:6px;padding:7px 9px;
-  border-bottom:1px solid var(--border-color);font-size:11.5px;font-weight:600;color:var(--text-bright);
+  display:flex;align-items:flex-end;gap:0;padding:11px 13px 8px;
+  border-bottom:1px solid var(--border-color);font-size:12px;font-weight:600;color:var(--text-bright);
 }
-.p-head .x{margin-left:auto;padding:1px 7px;border:1px solid var(--border-color);color:var(--text-dim);cursor:pointer}
-.p-body{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:9px;flex:1}
-.p-foot{display:flex;gap:5px;padding:7px 9px;border-top:1px solid var(--border-color)}
-.p-foot .btn{flex:1;padding:9px 4px;text-align:center}
+.p-head .x{padding:2px 8px;border:1px solid var(--border-color);color:var(--text-dim);cursor:pointer;line-height:1.3}
+.p-body{overflow-y:auto;-webkit-overflow-scrolling:touch;padding:13px 13px 16px;flex:1}
+.p-foot{display:flex;gap:6px;padding:10px 13px;border-top:1px solid var(--border-color)}
+.p-foot .btn{flex:1;padding:11px 4px;text-align:center}
 
 /* ═══ РЯДКИ ФОРМИ ═══ */
-.sec{font-size:10px;color:var(--text-dim);margin:12px 0 5px}
-.sec:first-child{margin-top:0}
-.r{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px dashed rgba(128,128,128,.22)}
-.r .k{font-size:11px;flex:1;min-width:0}
+.sec{display:flex;align-items:center;gap:7px;font-size:10px;color:var(--text-dim);
+  margin:20px 0 9px;letter-spacing:.09em}
+.sec:before{content:'├─';color:var(--border-color);letter-spacing:0}
+.sec:after{content:'';flex:1;border-top:1px dashed var(--border-color);opacity:.45}
+.sec:first-child{margin-top:2px}
+.r{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dashed rgba(128,128,128,.22)}
+.r .k{font-size:11.5px;flex:1;min-width:0}
 .r .v{font-size:10.5px;color:var(--text-bright);text-align:right;white-space:nowrap}
 .chk{cursor:pointer;font-weight:700;color:var(--text-dim);padding:2px 0}
 .chk.on{color:var(--text-bright)}
-.opts{display:flex;flex-wrap:wrap;gap:4px}
+.opts{display:flex;flex-wrap:wrap;gap:6px}
 .opts .btn{flex:1;min-width:64px;text-align:center}
 .bar{font-size:11px;color:var(--accent-color);letter-spacing:-.05em}
 input[type=range]{
-  -webkit-appearance:none;appearance:none;width:100%;height:14px;background:transparent;margin:2px 0;
+  -webkit-appearance:none;appearance:none;width:100%;height:16px;background:transparent;margin:7px 0 12px;
 }
 input[type=range]::-webkit-slider-runnable-track{height:3px;background:var(--border-color)}
 input[type=range]::-webkit-slider-thumb{
@@ -196,12 +193,12 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--text
 .swatches{display:flex;flex-wrap:wrap;gap:5px}
 .sw{width:30px;height:24px;border:1px solid var(--border-color);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px;color:#000}
 .sw.on{border-color:var(--text-bright);box-shadow:0 0 7px var(--glow-color)}
-.glyphs{display:grid;grid-template-columns:repeat(6,1fr);gap:4px}
+.glyphs{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
 .gl{border:1px solid var(--border-color);background:var(--bg-main);padding:7px 0;text-align:center;font-size:15px;cursor:pointer}
 .gl.on{background:var(--selection-bg);color:var(--selection-text);border-color:var(--text-bright)}
 
 /* ═══ ДЕРЕВО ЖУРНАЛУ ═══ */
-#tree{font-size:11px;line-height:1.7}
+#tree{font-size:11.5px;line-height:1.95}
 .node{display:flex;align-items:center;gap:0;white-space:pre;cursor:pointer;padding:1px 0}
 .node:active{background:var(--bg-hover)}
 .node .pre{color:var(--text-dim);flex-shrink:0}
@@ -234,8 +231,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--text
 @media (prefers-reduced-motion:reduce){.blink{animation:none}}
 </style>
 </head>
-<body class="crt">
-<div class="crt-scanlines"></div>
+<body>
 
 <div id="map"></div>
 
@@ -244,8 +240,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--text
   <div id="top-1">
     <span id="brand">┌─[ТЕРЕН//ASCII]─┐</span>
     <span class="sp"></span>
-    <span class="mini" id="m-theme">ТЕМА</span>
-    <span class="mini on" id="m-crt">CRT</span>
+    <span class="mini" id="m-theme">[ ТЕМА ]</span>
   </div>
   <div id="themebar">
     <span class="mini" data-th="green">ГРН</span>
@@ -283,13 +278,15 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--text
 <div id="rail">
   <button class="rbtn" id="c-layers"><span class="g">▤</span><span class="l">ШАРИ</span></button>
   <button class="rbtn" id="c-geo"><span class="g">⌖</span><span class="l">Я ТУТ</span></button>
+  <button class="rbtn" id="c-cluster"><span class="g">▥</span><span class="l">КЛАСТЕР</span></button>
+  <button class="rbtn" id="c-agg"><span class="g">Σ</span><span class="l">АГРЕГАЦ</span></button>
 </div>
 
 <div id="scrim"></div>
 
 <!-- ═══ ІНСТРУМЕНТИ ═══ -->
 <div class="panel" id="p-tools">
-  <div class="p-head"><span>┌─[ ІНСТРУМЕНТ ]</span><span class="x" data-close>[X]</span></div>
+  <div class="p-head"><span>┌─[ ІНСТРУМЕНТ ]</span><span class="rule"></span><span class="x" data-close>[X]</span></div>
   <div class="p-body">
     <div class="opts" style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
       <button class="btn" data-tool="line" style="padding:14px 4px">╱<br>[ ЛІНІЯ ]</button>
@@ -297,7 +294,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--text
       <button class="btn" data-tool="arrow" style="padding:14px 4px">➤<br>[ СТРІЛКА ]</button>
       <button class="btn" data-tool="marker" style="padding:14px 4px">◆<br>[ МІТКА ]</button>
     </div>
-    <div class="sec">// ЯК ЦЕ ПРАЦЮЄ</div>
+    <div class="sec">ЯК ЦЕ ПРАЦЮЄ</div>
     <pre class="dim" style="font-size:10px;margin:0;white-space:pre-wrap">┌─ тап по мапі ── ставить точку
 ├─ тап по першій точці ── замикає полігон
 ├─ [◄ НАЗАД] ── знімає останню точку
@@ -308,11 +305,11 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--text
 
 <!-- ═══ ШАРИ ═══ -->
 <div class="panel" id="p-layers">
-  <div class="p-head"><span>┌─[ ПІДКЛАДКА ТА РЕЛЬЄФ ]</span><span class="x" data-close>[X]</span></div>
+  <div class="p-head"><span>┌─[ ПІДКЛАДКА ТА РЕЛЬЄФ ]</span><span class="rule"></span><span class="x" data-close>[X]</span></div>
   <div class="p-body">
-    <div class="sec">// ДЖЕРЕЛО ТАЙЛІВ</div>
+    <div class="sec">ДЖЕРЕЛО ТАЙЛІВ</div>
     <div id="base-list"></div>
-    <div class="sec">// РЕЛЬЄФ</div>
+    <div class="sec">РЕЛЬЄФ</div>
     <div class="r"><span class="k">3D-рельєф (DEM)</span><span class="chk on" id="t-terrain">[x]</span></div>
     <div class="r"><span class="k">перебільшення</span><span class="v" id="v-exag">1.4×</span></div>
     <input type="range" id="rg-exag" min="0.5" max="3" step="0.1" value="1.4">
@@ -323,7 +320,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--text
     <div class="r"><span class="k">сітка координат</span><span class="chk" id="t-grid">[ ]</span></div>
     <div class="r"><span class="k">знебарвити підкладку</span><span class="chk on" id="t-mono">[x]</span></div>
 
-    <div class="sec">// КЛАСТЕРИЗАЦІЯ ПО НАВАНТАЖЕННЮ</div>
+    <div class="sec">КЛАСТЕРИЗАЦІЯ ПО НАВАНТАЖЕННЮ</div>
     <div class="r"><span class="k">3D-стовпи навантаження</span><span class="chk" id="t-load">[ ]</span></div>
     <div class="opts" id="f-lmode" style="margin-bottom:6px">
       <button class="btn" data-lmode="count">[ ЗА КІЛЬКІСТЮ ]</button>
@@ -334,7 +331,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--text
     <div class="r"><span class="k">фарбувати за навантаженням</span><span class="chk on" id="t-lcol">[x]</span></div>
     <pre id="load-log" class="dim" style="font-size:9.5px;white-space:pre-wrap;margin:6px 0 0">└─ стовпи вимкнені</pre>
 
-    <div class="sec">// ВЛАСНЕ ДЖЕРЕЛО (URL-ШАБЛОН + КЛЮЧ API)</div>
+    <div class="sec">ВЛАСНЕ ДЖЕРЕЛО (URL-ШАБЛОН + КЛЮЧ API)</div>
     <input class="inp" id="in-url" placeholder="https://tiles.example/{z}/{x}/{y}.png?key=..." autocomplete="off" spellcheck="false" style="font-size:12px">
     <div style="display:flex;gap:5px;margin-top:5px">
       <button class="btn" id="btn-url" style="flex:1">[ ПІДКЛЮЧИТИ ]</button>
@@ -344,18 +341,18 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--text
 ├─ ключ пиши прямо в URL, він лишається у цьому браузері
 └─ жоден напис поверх мапи не малюється: усі джерела
    і їх підписи живуть у цій панелі та в рядку знизу</pre>
-    <div class="sec">// СТАН ДЖЕРЕЛ</div>
+    <div class="sec">СТАН ДЖЕРЕЛ</div>
     <pre id="src-log" class="dim" style="font-size:9.5px;white-space:pre-wrap;margin:0">└─ помилок не було</pre>
   </div>
 </div>
 
 <!-- ═══ КАРТКА ОБʼЄКТА ═══ -->
 <div class="panel" id="p-obj">
-  <div class="p-head"><span id="o-title">┌─[ ОБʼЄКТ ]</span><span class="x" data-close>[X]</span></div>
+  <div class="p-head"><span id="o-title">┌─[ ОБʼЄКТ ]</span><span class="rule"></span><span class="x" data-close>[X]</span></div>
   <div class="p-body">
     <pre id="o-metrics" class="dim" style="font-size:10px;margin:0 0 8px;white-space:pre-wrap"></pre>
 
-    <div class="sec">// ІДЕНТИФІКАЦІЯ</div>
+    <div class="sec">ІДЕНТИФІКАЦІЯ</div>
     <input class="inp" id="f-name" placeholder="назва обʼєкта" autocomplete="off">
     <div style="height:5px"></div>
     <input class="inp" id="f-note" placeholder="нотатка" autocomplete="off">
@@ -363,22 +360,22 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--text
       <span class="v" id="f-group-path">/ без групи</span></div>
     <button class="btn" id="btn-group" style="width:100%">[ ПЕРЕМІСТИТИ В ГРУПУ ]</button>
 
-    <div class="sec">// КОЛІР</div>
+    <div class="sec">КОЛІР</div>
     <div class="r"><span class="k">успадкувати від групи</span><span class="chk" id="f-inherit">[ ]</span></div>
     <div class="swatches" id="f-color"></div>
 
-    <div class="sec" id="s-glyph">// ЗНАК</div>
+    <div class="sec" id="s-glyph">ЗНАК</div>
     <div class="glyphs" id="f-glyph"></div>
 
-    <div class="sec" id="s-arrow">// ТИП СТРІЛКИ</div>
+    <div class="sec" id="s-arrow">ТИП СТРІЛКИ</div>
     <div class="opts" id="f-atype"></div>
 
-    <div class="sec" id="s-anim">// АНІМАЦІЯ</div>
+    <div class="sec" id="s-anim">АНІМАЦІЯ</div>
     <div class="opts" id="f-anim"></div>
     <div class="r" id="r-speed"><span class="k">швидкість</span><span class="v" id="v-speed">1.0×</span></div>
     <input type="range" id="rg-speed" min="0.2" max="3" step="0.1" value="1">
 
-    <div class="sec">// ВИГЛЯД</div>
+    <div class="sec">ВИГЛЯД</div>
     <div class="r" id="r-width"><span class="k">товщина</span><span class="v bar" id="v-width"></span></div>
     <input type="range" id="rg-width" min="1" max="12" step="0.5" value="3">
     <div class="r" id="r-dash"><span class="k">лінія</span></div>
@@ -399,22 +396,29 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--text
     <div class="r"><span class="k">підпис на мапі</span><span class="chk on" id="f-label">[x]</span></div>
     <div class="r"><span class="k">показувати обʼєкт</span><span class="chk on" id="f-visible">[x]</span></div>
 
-    <div class="sec" id="s-drape">// НАПОВНЕННЯ ПОЛІГОНА</div>
+    <div class="sec" id="s-box">ПАРАМЕТРИ БОКСА</div>
+    <div class="r" id="r-bh"><span class="k">висота будівлі</span><span class="v" id="v-bh">12 м</span></div>
+    <input type="range" id="rg-bh" min="2" max="250" step="1" value="12">
+    <div class="r" id="r-bb"><span class="k">підняти основу</span><span class="v" id="v-bb">0 м</span></div>
+    <input type="range" id="rg-bb" min="0" max="120" step="1" value="0">
+
+    <div class="sec" id="s-drape">НАПОВНЕННЯ ПОЛІГОНА</div>
     <div class="r" id="r-sat"><span class="k">супутник у межах полігона</span><span class="chk" id="f-sat">[ ]</span></div>
     <div class="r" id="r-bld"><span class="k">3D-будівлі (OSM/Overpass)</span><span class="chk" id="f-bld">[ ]</span></div>
     <div class="r" id="r-dz"><span class="k">деталізація знімка</span><span class="v" id="v-dz">z17</span></div>
     <input type="range" id="rg-dz" min="14" max="18" step="1" value="17">
     <pre class="dim" id="drape-log" style="font-size:9.5px;white-space:pre-wrap;margin:0 0 6px">└─ знімок ріжеться точно по контуру і лягає на рельєф, обʼєкти малюються вище</pre>
 
-    <div class="sec">// ПРІОРИТЕТ</div>
+    <div class="sec">ПРІОРИТЕТ</div>
     <div class="opts" id="f-prio">
       <button class="btn" data-prio="low">[ ЗВИЧАЙНИЙ ]</button>
       <button class="btn" data-prio="mid">[ УВАГА ]</button>
       <button class="btn" data-prio="high">[ КРИТИЧНО ]</button>
     </div>
 
-    <div class="sec" id="s-geom">// ГЕОМЕТРІЯ</div>
+    <div class="sec" id="s-geom">ГЕОМЕТРІЯ</div>
     <button class="btn" id="btn-geom" style="width:100%">[ ПЕРЕКРЕСЛИТИ ГЕОМЕТРІЮ ]</button>
+    <button class="btn" id="btn-tobld" style="width:100%;margin-top:6px">[ ЗРОБИТИ 3D-БОКСОМ ]</button>
   </div>
   <div class="p-foot">
     <button class="btn warn" id="btn-del" style="flex:0 0 22%">[ ✕ ]</button>
@@ -425,7 +429,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--text
 
 <!-- ═══ ЖУРНАЛ / ДЕРЕВО ═══ -->
 <div class="panel" id="p-log" style="height:88vh">
-  <div class="p-head"><span>┌─[ ЖУРНАЛ ОБʼЄКТІВ ]</span><span class="x" data-close>[X]</span></div>
+  <div class="p-head"><span>┌─[ ЖУРНАЛ ОБʼЄКТІВ ]</span><span class="rule"></span><span class="x" data-close>[X]</span></div>
   <div style="padding:7px 9px 0"><input class="inp" id="q" placeholder="> пошук по назві / групі / нотатці" autocomplete="off" style="font-size:13px"></div>
   <div style="display:flex;gap:4px;padding:6px 9px 0;overflow-x:auto">
     <button class="btn" data-f="all">[ УСІ ]</button>
@@ -433,6 +437,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--text
     <button class="btn" data-f="polygon">[ ПОЛІГОНИ ]</button>
     <button class="btn" data-f="arrow">[ СТРІЛКИ ]</button>
     <button class="btn" data-f="marker">[ МІТКИ ]</button>
+    <button class="btn" data-f="building">[ БУДІВЛІ ]</button>
     <button class="btn" data-f="hidden">[ СХОВАНІ ]</button>
   </div>
   <div class="p-body"><div id="tree"></div></div>
@@ -443,9 +448,35 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--text
   </div>
 </div>
 
+<!-- ═══ АГРЕГАЦІЯ ═══ -->
+<div class="panel" id="p-agg" style="height:86vh">
+  <div class="p-head"><span>┌─[ АГРЕГАЦІЯ ТА ФІЛЬТР ]</span><span class="rule"></span><span class="x" data-close>[X]</span></div>
+  <div class="p-body">
+    <div class="sec">ТИП ОБʼЄКТА</div>
+    <div class="opts" id="a-types"></div>
+    <div class="sec">ПРІОРИТЕТ</div>
+    <div class="opts" id="a-prio">
+      <button class="btn on" data-aprio="all">[ БУДЬ-ЯКИЙ ]</button>
+      <button class="btn" data-aprio="mid">[ УВАГА ]</button>
+      <button class="btn" data-aprio="high">[ КРИТИЧНО ]</button>
+    </div>
+    <div class="sec">ГІЛКА ГРУП</div>
+    <div id="a-groups" style="font-size:11px;line-height:1.9"></div>
+    <div class="sec">ТЕКСТ</div>
+    <input class="inp" id="a-q" placeholder="> назва / нотатка" autocomplete="off">
+    <div class="sec">ЗВЕДЕННЯ</div>
+    <pre id="a-out" class="dim" style="font-size:10px;white-space:pre;overflow-x:auto;margin:0"></pre>
+  </div>
+  <div class="p-foot">
+    <button class="btn" id="a-reset">[ СКИНУТИ ]</button>
+    <button class="btn" id="a-group">[ + У ГРУПУ ]</button>
+    <button class="btn" id="a-apply">[ ФІЛЬТР НА МАПУ ]</button>
+  </div>
+</div>
+
 <!-- ═══ ПЕРЕМІЩЕННЯ В ГРУПУ ═══ -->
 <div class="panel" id="p-move">
-  <div class="p-head"><span id="mv-title">┌─[ КУДИ ПОКЛАСТИ ]</span><span class="x" data-close>[X]</span></div>
+  <div class="p-head"><span id="mv-title">┌─[ КУДИ ПОКЛАСТИ ]</span><span class="rule"></span><span class="x" data-close>[X]</span></div>
   <div class="p-body"><div id="mv-tree" style="font-size:11px;line-height:1.8"></div></div>
   <div class="p-foot">
     <button class="btn" id="mv-new">[ + ПІДГРУПА ТУТ ]</button>
@@ -461,7 +492,7 @@ const LS={obj:'teren.ascii.obj',grp:'teren.ascii.grp',cfg:'teren.ascii.cfg',view
 
 const PALETTE=['#00ff66','#00ffaa','#55f0ff','#ffb000','#ffff55','#ff5555','#ff55ff','#ffffff'];
 const GLYPHS=['◆','▲','●','■','✚','✱','◉','⌂','⚑','☢','⌖','✖'];
-const TYPE={line:'ЛІНІЯ',polygon:'ПОЛІГОН',arrow:'СТРІЛКА',marker:'МІТКА'};
+const TYPE={line:'ЛІНІЯ',polygon:'ПОЛІГОН',arrow:'СТРІЛКА',marker:'МІТКА',building:'БУДІВЛЯ'};
 const PRIO={low:'ЗВИЧАЙНИЙ',mid:'УВАГА',high:'КРИТИЧНО'};
 const ATYPES=[['classic','▶ КЛАСИКА'],['open','➤ ВІДКРИТА'],['double','↔ ПОДВІЙНА'],
   ['bar','⊣ РУБІЖ'],['wedge','◤ КЛИН'],['thrust','⇒ УДАР'],['plain','── БЕЗ ГОЛОВИ']];
@@ -472,12 +503,12 @@ const ANTS=[[0,4,3],[0.5,4,2.5],[1,4,2],[1.5,4,1.5],[2,4,1],[2.5,4,0.5],
 
 let objects=[],groups=[],draft=null,vxm=[],objm=[],runners={},cur=null,curNew=false;
 let selectedId=null,filter='all',query='',antsPhase=0,lastTick=0,mv=null;
-let cfg={base:'dark',terrain:true,exag:1.4,pitch:62,hill:.35,grid:false,mono:true,crt:true,theme:'green',url:'',
+let cfg={base:'dark',terrain:true,exag:1.4,pitch:62,hill:.35,grid:false,mono:true,theme:'green',url:'',
   load:false,lmode:'count',lh:600,lcol:true};
 let LOAD={};
 let lastStyle={color:'#00ff66',width:3,dash:'solid',opacity:1,fill:true,fillOpacity:.25,head:1,size:1,
   label:true,prio:'low',glyph:'◆',arrowType:'classic',anim:'none',speed:1,inherit:false,
-  sat:false,bld:false,dz:17};
+  sat:false,bld:false,dz:17,height:12,base:0};
 
 try{objects=JSON.parse(localStorage.getItem(LS.obj))||[]}catch(e){}
 try{groups=JSON.parse(localStorage.getItem(LS.grp))||[]}catch(e){}
@@ -544,7 +575,18 @@ function newGroup(parent,name){
     parent:parent||null,collapsed:false,visible:true,color:PALETTE[groups.length%PALETTE.length]};
   groups.push(g);save();return g;
 }
-const visEff=o=>o.visible&&gVis(o.groupId);
+let flt={on:false,types:{},prio:'all',group:null,q:''};
+function matchSel(o){
+  const anyType=Object.keys(flt.types).some(k=>flt.types[k]);
+  if(anyType&&!flt.types[o.type])return false;
+  if(flt.prio!=='all'&&o.st.prio!==flt.prio)return false;
+  if(flt.group&&!(o.groupId===flt.group||isDesc(o.groupId,flt.group)))return false;
+  if(flt.q){const q=flt.q.toLowerCase();
+    if(((o.name||'')+' '+(o.note||'')).toLowerCase().indexOf(q)<0)return false}
+  return true;
+}
+const matchFlt=o=>!flt.on||matchSel(o);
+const visEff=o=>o.visible&&gVis(o.groupId)&&matchFlt(o);
 const colorOf=o=>(o.st.inherit&&gColor(o.groupId))||o.st.color;
 
 /* ─── СТИЛЬ МАПИ ─── */
@@ -581,6 +623,9 @@ const STYLE={version:8,sources:{
     {id:'obj-fill',type:'fill',source:'objects',
       filter:['all',['==',['geometry-type'],'Polygon'],['==',['get','fill'],true]],
       paint:{'fill-color':['get','color'],'fill-opacity':['get','fillOpacity']}},
+    {id:'obj-bld',type:'fill-extrusion',source:'objects',filter:['==',['get','kind'],'bld'],
+      paint:{'fill-extrusion-color':['get','color'],'fill-extrusion-height':['get','bh'],
+        'fill-extrusion-base':['get','bb'],'fill-extrusion-opacity':['get','fillOpacity']}},
     {id:'obj-solid',type:'line',source:'objects',filter:['==',['get','dash'],'solid'],
       layout:{'line-cap':'round','line-join':'round'},
       paint:{'line-color':['get','color'],'line-width':['get','width'],'line-opacity':['get','opacity']}},
@@ -646,6 +691,13 @@ function buildFeatures(t){
   objects.forEach(o=>{
     if(!visEff(o)||o.type==='marker')return;
     const s=o.st,col=colorOf(o),m=animMul(o,t||0);
+    if(o.type==='building'){
+      f.push({type:'Feature',properties:{id:o.id,kind:'bld',color:col,dash:'none',fill:false,
+        bh:(+s.base||0)+(+s.height||10),bb:+s.base||0,fillOpacity:Math.max(s.fillOpacity,.45),
+        width:s.width,opacity:s.opacity,sel:o.id===selectedId},
+        geometry:{type:'Polygon',coordinates:[ring(o.coords)]}});
+      return;
+    }
     const dash=s.anim==='ants'?'ants':s.dash;
     const p={id:o.id,color:col,width:s.width*m.w,opacity:s.opacity*m.op,dash,
       fill:!!(s.fill&&o.type==='polygon'),fillOpacity:s.fillOpacity,sel:o.id===selectedId};
@@ -827,6 +879,9 @@ function openObj(o,isNew){
     L.push('├─ азимут ...... '+Math.round(bearing(cur.coords[0],cur.coords.at(-1)))+'°')}
   L.push('├─ вершин ...... '+cur.coords.length);
   if(t==='polygon'&&LOAD[cur.id])L.push('├─ навантаження  '+LOAD[cur.id].n+' обʼєктів (власних '+LOAD[cur.id].own+')');
+  if(t==='building'){L.push('├─ основа ...... '+fAr(parea(cur.coords)));
+    L.push('├─ висота ...... '+(cur.st.height||12)+' м (основа +'+(cur.st.base||0)+' м)');
+    L.push('├─ обʼєм ....... '+Math.round(parea(cur.coords)*(cur.st.height||12)).toLocaleString('uk')+' м³')}
   if(t==='marker'){let h=null;try{h=map.queryTerrainElevation({lng:cur.coords[0][0],lat:cur.coords[0][1]})}catch(e){}
     if(h!=null)L.push('├─ висота ...... '+Math.round(h)+' м')}
   L.push('└─ центр ....... '+fLL(t==='marker'?cur.coords[0]:mid(cur.coords)));
@@ -843,6 +898,15 @@ function openObj(o,isNew){
   show('r-size',t==='marker');show('rg-size',t==='marker');
   show('s-anim',t!=='marker');show('f-anim',t!=='marker');
   show('r-speed',t!=='marker');show('rg-speed',t!=='marker');
+  show('s-box',t==='building');show('r-bh',t==='building');show('rg-bh',t==='building');
+  show('r-bb',t==='building');show('rg-bb',t==='building');
+  show('btn-tobld',t==='polygon');
+  show('r-width',t!=='marker'&&t!=='building');show('r-dash',t!=='marker'&&t!=='building');
+  show('f-dash',t!=='marker'&&t!=='building');show('rg-width',t!=='marker'&&t!=='building');
+  show('r-fill',t==='polygon'||t==='building');show('r-fillop',t==='polygon'||t==='building');
+  show('rg-fillop',t==='polygon'||t==='building');
+  show('s-anim',t!=='marker'&&t!=='building');show('f-anim',t!=='marker'&&t!=='building');
+  show('r-speed',t!=='marker'&&t!=='building');show('rg-speed',t!=='marker'&&t!=='building');
   show('s-drape',t==='polygon');show('r-sat',t==='polygon');show('r-bld',t==='polygon');
   show('r-dz',t==='polygon');show('rg-dz',t==='polygon');show('drape-log',t==='polygon');
   show('s-geom',!isNew);show('btn-geom',!isNew);
@@ -866,6 +930,8 @@ function openObj(o,isNew){
   chk('f-sat',s.sat,v=>cur.st.sat=v);
   chk('f-bld',s.bld,v=>cur.st.bld=v);
   rng('dz',s.dz||17,v=>'z'+v,v=>cur.st.dz=v);
+  rng('bh',s.height||12,v=>v+' м',v=>{cur.st.height=v;previewLive()});
+  rng('bb',s.base||0,v=>v+' м',v=>{cur.st.base=v;previewLive()});
   open('p-obj');previewLive();
 }
 /* живий перегляд змін просто на мапі */
@@ -894,6 +960,11 @@ g('btn-geom').onclick=()=>{
   startDraw(cur.type,cur.id);
 };
 g('btn-group').onclick=()=>openMove({kind:'obj',id:cur.id,sel:cur.groupId});
+g('btn-tobld').onclick=()=>{
+  cur.type='building';cur.st.height=cur.st.height||12;cur.st.base=cur.st.base||0;
+  const i=objects.findIndex(o=>o.id===cur.id);if(i>=0)objects[i]=cur;else objects.unshift(cur);
+  save();render();openObj(cur);st('полігон став 3d-боксом');
+};
 
 /* ─── ДЕРЕВО ЖУРНАЛУ ─── */
 function metaOf(o){
@@ -901,7 +972,7 @@ function metaOf(o){
   if(o.type==='polygon')return fAr(parea(o.coords));
   return fLen(plen(o.coords))+' '+Math.round(bearing(o.coords[0],o.coords.at(-1)))+'°';
 }
-const GLYPH_T={line:'╱',polygon:'▱',arrow:'➤',marker:'◆'};
+const GLYPH_T={line:'╱',polygon:'▱',arrow:'➤',marker:'◆',building:'⬢'};
 function rowObj(o,pre){
   return '<div class="node'+(visEff(o)?'':' off')+'" data-o="'+o.id+'">'+
     '<span class="pre">'+pre+' </span>'+
@@ -992,12 +1063,12 @@ function mvRows(parent,pre,out,skip){
 }
 function renderMove(){
   const head=mv.kind==='obj'?'':
-    '<div class="sec">// НАЗВА</div><input class="inp" id="mv-name" value="'+esc(mv.name||'')+'" placeholder="назва групи">'+
-    '<div class="sec">// КОЛІР ГРУПИ</div><div class="swatches" id="mv-color">'+
+    '<div class="sec">НАЗВА</div><input class="inp" id="mv-name" value="'+esc(mv.name||'')+'" placeholder="назва групи">'+
+    '<div class="sec">КОЛІР ГРУПИ</div><div class="swatches" id="mv-color">'+
       PALETTE.map(c=>'<div class="sw'+(mv.color===c?' on':'')+'" data-c="'+c+'" style="background:'+c+'"></div>').join('')+'</div>';
   const out=['<div class="node" data-sel=""><span class="pre">'+(mv.sel?'( )':'(•)')+' </span><span class="nm dim">/ корінь (без групи)</span></div>'];
   mvRows(null,'',out,mv.kind==='grp'?mv.id:null);
-  g('mv-tree').innerHTML=head+'<div class="sec">// '+(mv.kind==='obj'?'ОБРАТИ ГРУПУ':'БАТЬКІВСЬКА ГРУПА')+'</div>'+out.join('');
+  g('mv-tree').innerHTML=head+'<div class="sec">'+(mv.kind==='obj'?'ОБРАТИ ГРУПУ':'БАТЬКІВСЬКА ГРУПА')+'</div>'+out.join('');
   g('mv-title').textContent='┌─[ '+(mv.kind==='obj'?'КУДИ ПОКЛАСТИ ОБʼЄКТ':mv.kind==='grp'?'РЕДАКТОР ГРУПИ':'НОВА ГРУПА')+' ]';
   const nm=g('mv-name');if(nm)nm.oninput=e=>mv.name=e.target.value;
   const cl=g('mv-color');if(cl)cl.onclick=e=>{const s=e.target.closest('.sw');if(!s)return;mv.color=s.dataset.c;renderMove()};
@@ -1145,8 +1216,13 @@ g('c-geo').onclick=()=>askGeo(false);
 map.on('click',e=>{
   if(draft){addPoint(e.lngLat);return}
   const p=14,box=[[e.point.x-p,e.point.y-p],[e.point.x+p,e.point.y+p]];
-  const hit=map.queryRenderedFeatures(box,{layers:['obj-fill','obj-solid','obj-dash','obj-dot','obj-ants']});
+  const hit=map.queryRenderedFeatures(box,{layers:['obj-fill','obj-bld','obj-solid','obj-dash','obj-dot','obj-ants']});
   if(hit.length){const o=objects.find(x=>x.id===hit[0].properties.id);if(o){openObj(o);return}}
+  const bl=Object.keys(extras).filter(k=>k.indexOf('bld-')===0&&map.getLayer('l-'+k)).map(k=>'l-'+k);
+  if(bl.length){
+    const hb=map.queryRenderedFeatures(box,{layers:bl});
+    if(hb.length){boxFromBuilding(hb[0]);return}
+  }
   if(selectedId){selectedId=null;setData(performance.now()/1000)}
 });
 map.on('moveend',()=>{
@@ -1159,8 +1235,7 @@ function setTheme(t){cfg.theme=t;document.documentElement.dataset.theme=t;
   document.querySelectorAll('[data-th]').forEach(b=>b.classList.toggle('on',b.dataset.th===t));save()}
 document.querySelectorAll('[data-th]').forEach(b=>b.onclick=()=>{setTheme(b.dataset.th);st('тема: '+b.textContent)});
 g('m-theme').onclick=()=>g('themebar').classList.toggle('on');
-g('m-crt').onclick=()=>{cfg.crt=!cfg.crt;document.body.classList.toggle('crt',cfg.crt);
-  g('m-crt').classList.toggle('on',cfg.crt);save()};
+
 /* слайдери шарів */
 g('rg-exag').oninput=e=>{cfg.exag=+e.target.value;g('v-exag').textContent=cfg.exag.toFixed(1)+'×';
   if(cfg.terrain)map.setTerrain({source:'dem',exaggeration:cfg.exag});save()};
@@ -1168,8 +1243,7 @@ g('rg-pitch').oninput=e=>{cfg.pitch=+e.target.value;g('v-pitch').textContent=cfg
 g('rg-hill').oninput=e=>{cfg.hill=+e.target.value;g('v-hill').textContent=bar(cfg.hill,8);
   map.setPaintProperty('l-hill','hillshade-exaggeration',cfg.hill);save()};
 g('t-terrain').onclick=()=>applyTerrain(!cfg.terrain);
-g('t-load').onclick=()=>{cfg.load=!cfg.load;const e=g('t-load');e.textContent=cfg.load?'[x]':'[ ]';
-  e.classList.toggle('on',cfg.load);save();render();
+g('t-load').onclick=()=>{cfg.load=!cfg.load;save();syncCluster();render();
   st(cfg.load?'стовпи навантаження піднято':'стовпи прибрано')};
 g('t-lcol').onclick=()=>{cfg.lcol=!cfg.lcol;const e=g('t-lcol');e.textContent=cfg.lcol?'[x]':'[ ]';
   e.classList.toggle('on',cfg.lcol);save();renderLoad()};
@@ -1185,8 +1259,7 @@ g('t-mono').onclick=()=>{cfg.mono=!cfg.mono;const e=g('t-mono');e.textContent=cf
 
 /* ─── СТАРТ ─── */
 map.on('load',()=>{
-  setTheme(cfg.theme);
-  document.body.classList.toggle('crt',cfg.crt);g('m-crt').classList.toggle('on',cfg.crt);
+  setTheme(cfg.theme||'green');
   if(cfg.url){g('in-url').value=cfg.url;mountCustom(cfg.url)}
   applyBase(BASES[cfg.base]?cfg.base:'dark');
   applyTerrain(cfg.terrain);
@@ -1203,6 +1276,7 @@ map.on('load',()=>{
   const tm=g('t-mono');tm.textContent=cfg.mono?'[x]':'[ ]';tm.classList.toggle('on',cfg.mono);
   g('map').style.filter=cfg.mono?'saturate(.55) contrast(1.05)':'none';
   document.querySelectorAll('[data-f]').forEach(x=>x.classList.toggle('on',x.dataset.f==='all'));
+  syncCluster();buildAggUI();renderAgg();
   buildGrid();render();logSrc('старт ok');
   setTimeout(()=>askGeo(true),700);
   st(objects.length?'з поверненням. журнал на місці':'тайли доїхали. малюй');
@@ -1375,6 +1449,109 @@ function renderLoad(){
     return (i===arr.length-1?'└─ ':'├─ ')+'█'.repeat(k)+'░'.repeat(8-k)+' '+r.L.name.slice(0,14)+' · '+v;
   }).join('\n');
 }
+
+
+/* ═══════════ БОКС З OSM-БУДІВЛІ ═══════════ */
+function boxFromBuilding(f){
+  const gm=f.geometry;
+  let c=gm.type==='Polygon'?gm.coordinates[0]:gm.coordinates[0][0];
+  c=c.map(p=>[p[0],p[1]]);
+  if(c.length>2&&c[0][0]===c[c.length-1][0]&&c[0][1]===c[c.length-1][1])c=c.slice(0,-1);
+  if(c.length<3){st('контур будівлі кривий, не взяв');return}
+  const h=Math.round(f.properties&&f.properties.h?f.properties.h:12);
+  st('зняв бокс із будівлі, ~'+h+' м');
+  openObj({id:'o'+Date.now(),type:'building',name:'',note:'',groupId:null,coords:c,visible:true,
+    created:Date.now(),st:{...lastStyle,height:h,base:0,fill:true,fillOpacity:.6,label:false,anim:'none'}},true);
+}
+
+/* ═══════════ АГРЕГАЦІЯ ═══════════ */
+const AGG_TYPES=['line','polygon','arrow','marker','building'];
+function buildAggUI(){
+  g('a-types').innerHTML=AGG_TYPES.map(t=>
+    '<button class="btn'+(flt.types[t]?' on':'')+'" data-atype2="'+t+'">['+GLYPH_T[t]+' '+TYPE[t]+']</button>').join('');
+  g('a-types').querySelectorAll('[data-atype2]').forEach(b=>b.onclick=()=>{
+    const t=b.dataset.atype2;flt.types[t]=!flt.types[t];b.classList.toggle('on',flt.types[t]);renderAgg()});
+  document.querySelectorAll('[data-aprio]').forEach(b=>b.onclick=()=>{
+    flt.prio=b.dataset.aprio;
+    document.querySelectorAll('[data-aprio]').forEach(x=>x.classList.toggle('on',x===b));renderAgg()});
+  const out=['<div class="node" data-ag=""><span class="pre">'+(flt.group?'( )':'(•)')+
+    ' </span><span class="nm dim">усі гілки</span></div>'];
+  const walk=(par,pre)=>kids(par).forEach((gr,i,arr)=>{
+    const last=i===arr.length-1;
+    out.push('<div class="node" data-ag="'+gr.id+'"><span class="pre">'+pre+(last?'└─':'├─')+
+      ' '+(flt.group===gr.id?'(•)':'( )')+' </span><span class="nm" style="color:'+(gr.color||'var(--text-bright)')+
+      '">['+esc(gr.name)+']</span></div>');
+    walk(gr.id,pre+(last?'   ':'│  '));
+  });
+  walk(null,'');
+  g('a-groups').innerHTML=out.join('');
+  g('a-groups').querySelectorAll('[data-ag]').forEach(n=>n.onclick=()=>{
+    flt.group=n.dataset.ag||null;buildAggUI();renderAgg()});
+  g('a-apply').textContent=flt.on?'[ ФІЛЬТР УВІМК ]':'[ ФІЛЬТР НА МАПУ ]';
+  g('a-apply').classList.toggle('on',flt.on);
+  g('c-agg').classList.toggle('on',flt.on);
+}
+function aggMatched(){return objects.filter(o=>matchSel(o))}
+function pad(x,n){x=String(x);return x.length>n?x.slice(0,n):x+' '.repeat(n-x.length)}
+function padL(x,n){x=String(x);return x.length>n?x.slice(0,n):' '.repeat(n-x.length)+x}
+function renderAgg(){
+  const m=aggMatched(),L=[];
+  const agg={};AGG_TYPES.forEach(t=>agg[t]={n:0,v:0});
+  m.forEach(o=>{
+    const a=agg[o.type];if(!a)return;a.n++;
+    if(o.type==='line'||o.type==='arrow')a.v+=plen(o.coords);
+    else if(o.type==='polygon')a.v+=parea(o.coords);
+    else if(o.type==='building')a.v+=parea(o.coords)*(o.st.height||12);
+  });
+  L.push('┌'+'─'.repeat(12)+'┬'+'─'.repeat(6)+'┬'+'─'.repeat(15)+'┐');
+  L.push('│ '+pad('ТИП',11)+'│'+padL('К-ТЬ ',6)+'│ '+pad('СУМА',14)+'│');
+  L.push('├'+'─'.repeat(12)+'┼'+'─'.repeat(6)+'┼'+'─'.repeat(15)+'┤');
+  AGG_TYPES.forEach(t=>{
+    const a=agg[t];if(!a.n)return;
+    const v=t==='polygon'?fAr(a.v):t==='building'?Math.round(a.v).toLocaleString('uk')+' м³':
+      (t==='marker'?'—':fLen(a.v));
+    L.push('│ '+pad(TYPE[t],11)+'│'+padL(a.n+' ',6)+'│ '+pad(v,14)+'│');
+  });
+  L.push('└'+'─'.repeat(12)+'┴'+'─'.repeat(6)+'┴'+'─'.repeat(15)+'┘');
+  const byG={};m.forEach(o=>{const k=o.groupId||'';byG[k]=(byG[k]||0)+1});
+  const keys=Object.keys(byG);
+  if(keys.length){
+    L.push('');L.push('ПО ГІЛКАХ:');
+    keys.forEach((k,i)=>{
+      const nm=k?(grp(k)||{name:'?'}).name:'без групи';
+      L.push((i===keys.length-1?'└─ ':'├─ ')+pad(nm,16)+'· '+byG[k]);
+    });
+  }
+  L.push('');L.push('ВСЬОГО: '+m.length+' з '+objects.length+(flt.on?'  [ФІЛЬТР АКТИВНИЙ]':''));
+  g('a-out').textContent=L.join('\n');
+}
+g('a-q').oninput=e=>{flt.q=e.target.value.trim();renderAgg()};
+g('a-apply').onclick=()=>{
+  flt.on=!flt.on;buildAggUI();render();
+  st(flt.on?'фільтр на мапі: лишив '+aggMatched().length+' шт':'фільтр знято, всі на місці');
+};
+g('a-reset').onclick=()=>{
+  flt={on:false,types:{},prio:'all',group:null,q:''};
+  g('a-q').value='';
+  document.querySelectorAll('[data-aprio]').forEach(x=>x.classList.toggle('on',x.dataset.aprio==='all'));
+  buildAggUI();renderAgg();render();st('фільтр скинуто');
+};
+g('a-group').onclick=()=>{
+  const m=aggMatched();
+  if(!m.length){st('вибірка порожня');return}
+  const n=newGroup(null,'ВИБІРКА '+(groups.length+1));
+  m.forEach(o=>o.groupId=n.id);save();render();renderAgg();
+  st('зібрав '+m.length+' у групу '+n.name);
+};
+g('c-agg').onclick=()=>{buildAggUI();renderAgg();open('p-agg')};
+function syncCluster(){
+  g('c-cluster').classList.toggle('on',cfg.load);
+  const e=g('t-load');if(e){e.textContent=cfg.load?'[x]':'[ ]';e.classList.toggle('on',cfg.load)}
+}
+g('c-cluster').onclick=()=>{
+  cfg.load=!cfg.load;save();syncCluster();render();
+  st(cfg.load?'стовпи навантаження піднято':'стовпи прибрано');
+};
 
 st('тайли їдуть, тримайся',1);
 </script>
