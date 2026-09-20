@@ -122,14 +122,21 @@ body.crt .crt-scanlines{opacity:1}
 }
 #cmd-row{display:grid;grid-template-columns:1fr 1fr;gap:4px}
 #cmd .btn{padding:11px 2px;text-align:center;font-size:12px;letter-spacing:.02em}
-#rail{
-  position:absolute;right:0;top:34%;z-index:470;display:flex;flex-direction:column;gap:6px;
+#rail{position:absolute;right:9px;top:29%;z-index:470;display:flex;flex-direction:column;gap:9px}
+.rbtn{
+  width:54px;height:54px;position:relative;background:var(--bg-card);
+  border:1px solid var(--border-color);box-shadow:0 0 12px var(--glow-color);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;
 }
-#rail .btn{
-  padding:9px 5px;font-size:10px;line-height:1.25;text-align:center;border-right:0;
-  background:var(--bg-card);box-shadow:-3px 0 12px rgba(0,0,0,.6);
-}
-#rail .btn.on{background:var(--selection-bg);color:var(--selection-text)}
+.rbtn .g{font-size:19px;line-height:1;color:var(--text-bright)}
+.rbtn .l{font-size:7.5px;letter-spacing:.08em;color:var(--text-dim)}
+.rbtn:before,.rbtn:after{content:'';position:absolute;width:8px;height:8px;border:1px solid var(--text-bright)}
+.rbtn:before{top:-1px;left:-1px;border-right:0;border-bottom:0}
+.rbtn:after{bottom:-1px;right:-1px;border-left:0;border-top:0}
+.rbtn:active{background:var(--bg-hover);transform:translateY(1px)}
+.rbtn.on{background:var(--selection-bg)}
+.rbtn.on .g,.rbtn.on .l{color:var(--selection-text)}
+.rbtn.live .g{color:var(--accent-color);text-shadow:0 0 8px var(--accent-color)}
 #attrib{font-size:8px;color:var(--text-dim);opacity:.65;text-align:center;padding-top:3px;letter-spacing:0}
 
 /* ═══ ПАНЕЛЬ МАЛЮВАННЯ ═══ */
@@ -274,8 +281,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--text
 </div>
 
 <div id="rail">
-  <button class="btn" id="c-layers">▤<br>Ш<br>А<br>Р<br>И</button>
-  <button class="btn" id="c-geo">⌖<br>Я<br>Т<br>У<br>Т</button>
+  <button class="rbtn" id="c-layers"><span class="g">▤</span><span class="l">ШАРИ</span></button>
+  <button class="rbtn" id="c-geo"><span class="g">⌖</span><span class="l">Я ТУТ</span></button>
 </div>
 
 <div id="scrim"></div>
@@ -315,6 +322,17 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--text
     <input type="range" id="rg-hill" min="0" max="1" step="0.05" value="0.35">
     <div class="r"><span class="k">сітка координат</span><span class="chk" id="t-grid">[ ]</span></div>
     <div class="r"><span class="k">знебарвити підкладку</span><span class="chk on" id="t-mono">[x]</span></div>
+
+    <div class="sec">// КЛАСТЕРИЗАЦІЯ ПО НАВАНТАЖЕННЮ</div>
+    <div class="r"><span class="k">3D-стовпи навантаження</span><span class="chk" id="t-load">[ ]</span></div>
+    <div class="opts" id="f-lmode" style="margin-bottom:6px">
+      <button class="btn" data-lmode="count">[ ЗА КІЛЬКІСТЮ ]</button>
+      <button class="btn" data-lmode="dens">[ ЗА ЩІЛЬНІСТЮ ]</button>
+    </div>
+    <div class="r"><span class="k">макс. висота стовпа</span><span class="v" id="v-lh">600 м</span></div>
+    <input type="range" id="rg-lh" min="50" max="3000" step="50" value="600">
+    <div class="r"><span class="k">фарбувати за навантаженням</span><span class="chk on" id="t-lcol">[x]</span></div>
+    <pre id="load-log" class="dim" style="font-size:9.5px;white-space:pre-wrap;margin:6px 0 0">└─ стовпи вимкнені</pre>
 
     <div class="sec">// ВЛАСНЕ ДЖЕРЕЛО (URL-ШАБЛОН + КЛЮЧ API)</div>
     <input class="inp" id="in-url" placeholder="https://tiles.example/{z}/{x}/{y}.png?key=..." autocomplete="off" spellcheck="false" style="font-size:12px">
@@ -454,7 +472,9 @@ const ANTS=[[0,4,3],[0.5,4,2.5],[1,4,2],[1.5,4,1.5],[2,4,1],[2.5,4,0.5],
 
 let objects=[],groups=[],draft=null,vxm=[],objm=[],runners={},cur=null,curNew=false;
 let selectedId=null,filter='all',query='',antsPhase=0,lastTick=0,mv=null;
-let cfg={base:'dark',terrain:true,exag:1.4,pitch:62,hill:.35,grid:false,mono:true,crt:true,theme:'green',url:''};
+let cfg={base:'dark',terrain:true,exag:1.4,pitch:62,hill:.35,grid:false,mono:true,crt:true,theme:'green',url:'',
+  load:false,lmode:'count',lh:600,lcol:true};
+let LOAD={};
 let lastStyle={color:'#00ff66',width:3,dash:'solid',opacity:1,fill:true,fillOpacity:.25,head:1,size:1,
   label:true,prio:'low',glyph:'◆',arrowType:'classic',anim:'none',speed:1,inherit:false,
   sat:false,bld:false,dz:17};
@@ -541,7 +561,8 @@ const STYLE={version:8,sources:{
     'b-dark':BASES.dark.src,'b-sat':BASES.sat.src,
     dem:{type:'raster-dem',tileSize:256,maxzoom:14,encoding:'terrarium',
       tiles:['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png']},
-    grid:{type:'geojson',data:EMPTY},objects:{type:'geojson',data:EMPTY},draft:{type:'geojson',data:EMPTY}},
+    grid:{type:'geojson',data:EMPTY},load:{type:'geojson',data:EMPTY},
+    objects:{type:'geojson',data:EMPTY},draft:{type:'geojson',data:EMPTY}},
   layers:[
     {id:'bg',type:'background',paint:{'background-color':'#05080a'}},
     {id:'l-dark',type:'raster',source:'b-dark'},
@@ -550,6 +571,9 @@ const STYLE={version:8,sources:{
       'hillshade-shadow-color':'#000','hillshade-highlight-color':'#6fffa8','hillshade-accent-color':'#03150a'}},
     {id:'l-grid',type:'line',source:'grid',layout:{visibility:'none'},
       paint:{'line-color':'#5effa8','line-width':.6,'line-opacity':.28}},
+    {id:'l-load',type:'fill-extrusion',source:'load',paint:{
+      'fill-extrusion-color':['get','c'],'fill-extrusion-height':['get','h'],
+      'fill-extrusion-base':0,'fill-extrusion-opacity':.45}},
     {id:'anchor-extras',type:'background',layout:{visibility:'none'},paint:{'background-color':'#000'}},
     {id:'obj-sel',type:'line',source:'objects',filter:['==',['get','sel'],true],
       layout:{'line-cap':'round','line-join':'round'},
@@ -655,13 +679,16 @@ function renderMarkers(){
       objm.push(new maplibregl.Marker({element:el,anchor:'center'}).setLngLat(o.coords[0]).addTo(map));
     }else if(o.st.label&&o.name){
       const el=document.createElement('div');
-      el.className='cap';el.style.color=col;el.textContent='«'+o.name+'»';
+      el.className='cap';el.style.color=col;
+      const ld=cfg.load&&LOAD[o.id]&&LOAD[o.id].n?' ▮'+LOAD[o.id].n:'';
+      el.textContent='«'+o.name+'»'+ld;
       el.onclick=e=>{e.stopPropagation();openObj(o)};
       objm.push(new maplibregl.Marker({element:el,anchor:'center'}).setLngLat(anchorOf(o)).addTo(map));
     }
   });
 }
-function render(){setData(performance.now()/1000);renderMarkers();renderTree();syncExtras();idle()}
+function render(){computeLoad();renderLoad();setData(performance.now()/1000);
+  renderMarkers();renderTree();syncExtras();idle()}
 
 /* ─── АНІМАЦІЯ ─── */
 function animLoop(ts){
@@ -799,6 +826,7 @@ function openObj(o,isNew){
   if(t==='line'||t==='arrow'){L.push('├─ довжина ..... '+fLen(plen(cur.coords)));
     L.push('├─ азимут ...... '+Math.round(bearing(cur.coords[0],cur.coords.at(-1)))+'°')}
   L.push('├─ вершин ...... '+cur.coords.length);
+  if(t==='polygon'&&LOAD[cur.id])L.push('├─ навантаження  '+LOAD[cur.id].n+' обʼєктів (власних '+LOAD[cur.id].own+')');
   if(t==='marker'){let h=null;try{h=map.queryTerrainElevation({lng:cur.coords[0][0],lat:cur.coords[0][1]})}catch(e){}
     if(h!=null)L.push('├─ висота ...... '+Math.round(h)+' м')}
   L.push('└─ центр ....... '+fLL(t==='marker'?cur.coords[0]:mid(cur.coords)));
@@ -1107,6 +1135,7 @@ function askGeo(auto){
     if(me)me.remove();
     const el=document.createElement('div');el.id='me';el.textContent='⌖';
     me=new maplibregl.Marker({element:el,anchor:'center'}).setLngLat(myPos).addTo(map);
+    g('c-geo').classList.add('live');
     if(!auto||!localStorage.getItem(LS.view))map.flyTo({center:myPos,zoom:Math.max(map.getZoom(),14.5),duration:1200});
     st(auto?'позицію взяв, мітка ⌖ на мапі':'ти тут, я бачу');
   },()=>st(auto?'без гео поки що — кнопка ⌖ праворуч, як передумаєш':'gps кобенится — дай дозвіл або став вручну'),
@@ -1139,6 +1168,16 @@ g('rg-pitch').oninput=e=>{cfg.pitch=+e.target.value;g('v-pitch').textContent=cfg
 g('rg-hill').oninput=e=>{cfg.hill=+e.target.value;g('v-hill').textContent=bar(cfg.hill,8);
   map.setPaintProperty('l-hill','hillshade-exaggeration',cfg.hill);save()};
 g('t-terrain').onclick=()=>applyTerrain(!cfg.terrain);
+g('t-load').onclick=()=>{cfg.load=!cfg.load;const e=g('t-load');e.textContent=cfg.load?'[x]':'[ ]';
+  e.classList.toggle('on',cfg.load);save();render();
+  st(cfg.load?'стовпи навантаження піднято':'стовпи прибрано')};
+g('t-lcol').onclick=()=>{cfg.lcol=!cfg.lcol;const e=g('t-lcol');e.textContent=cfg.lcol?'[x]':'[ ]';
+  e.classList.toggle('on',cfg.lcol);save();renderLoad()};
+g('rg-lh').oninput=e=>{cfg.lh=+e.target.value;g('v-lh').textContent=cfg.lh+' м';save();renderLoad()};
+document.querySelectorAll('[data-lmode]').forEach(b=>b.onclick=()=>{
+  cfg.lmode=b.dataset.lmode;
+  document.querySelectorAll('[data-lmode]').forEach(x=>x.classList.toggle('on',x===b));
+  save();renderLoad();st('режим: '+(cfg.lmode==='count'?'за кількістю':'за щільністю'))});
 g('t-grid').onclick=()=>{cfg.grid=!cfg.grid;const e=g('t-grid');e.textContent=cfg.grid?'[x]':'[ ]';
   e.classList.toggle('on',cfg.grid);map.setLayoutProperty('l-grid','visibility',cfg.grid?'visible':'none');buildGrid();save()};
 g('t-mono').onclick=()=>{cfg.mono=!cfg.mono;const e=g('t-mono');e.textContent=cfg.mono?'[x]':'[ ]';
@@ -1157,6 +1196,10 @@ map.on('load',()=>{
   map.setPaintProperty('l-hill','hillshade-exaggeration',cfg.hill);
   const tg=g('t-grid');tg.textContent=cfg.grid?'[x]':'[ ]';tg.classList.toggle('on',cfg.grid);
   map.setLayoutProperty('l-grid','visibility',cfg.grid?'visible':'none');
+  const tl=g('t-load');tl.textContent=cfg.load?'[x]':'[ ]';tl.classList.toggle('on',cfg.load);
+  const tc=g('t-lcol');tc.textContent=cfg.lcol?'[x]':'[ ]';tc.classList.toggle('on',cfg.lcol);
+  g('rg-lh').value=cfg.lh;g('v-lh').textContent=cfg.lh+' м';
+  document.querySelectorAll('[data-lmode]').forEach(x=>x.classList.toggle('on',x.dataset.lmode===cfg.lmode));
   const tm=g('t-mono');tm.textContent=cfg.mono?'[x]':'[ ]';tm.classList.toggle('on',cfg.mono);
   g('map').style.filter=cfg.mono?'saturate(.55) contrast(1.05)':'none';
   document.querySelectorAll('[data-f]').forEach(x=>x.classList.toggle('on',x.dataset.f==='all'));
@@ -1275,6 +1318,62 @@ function syncExtras(){
     if(o.st.bld){want['bld-'+o.id]=1;ensureBld(o)}
   });
   Object.keys(extras).forEach(id=>{if(!want[id]&&!extras[id].busy)dropExtra(id)});
+}
+
+
+/* ═══════════ КЛАСТЕРИЗАЦІЯ: 3D-СТОВПИ НАВАНТАЖЕННЯ ПОЛІГОНІВ ═══════════ */
+function pip(pt,poly){
+  let inside=false;
+  for(let i=0,j=poly.length-1;i<poly.length;j=i++){
+    const xi=poly[i][0],yi=poly[i][1],xj=poly[j][0],yj=poly[j][1];
+    if((yi>pt[1])!==(yj>pt[1])&&pt[0]<(xj-xi)*(pt[1]-yi)/(yj-yi)+xi)inside=!inside;
+  }
+  return inside;
+}
+const anchorPt=o=>o.type==='marker'?o.coords[0]:mid(o.coords);
+function computeLoad(){
+  LOAD={};
+  const polys=objects.filter(o=>o.type==='polygon'&&visEff(o)&&o.coords.length>2);
+  polys.forEach(p=>LOAD[p.id]={n:0,own:0,area:parea(p.coords),name:p.name||'ПОЛІГОН',o:p});
+  objects.forEach(o=>{
+    if(!visEff(o))return;
+    const pt=anchorPt(o);
+    const inside=polys.filter(p=>p.id!==o.id&&pip(pt,ring(p.coords)));
+    if(!inside.length)return;
+    inside.forEach(p=>LOAD[p.id].n++);
+    inside.sort((a,b)=>LOAD[a.id].area-LOAD[b.id].area);
+    LOAD[inside[0].id].own++;
+  });
+}
+function ramp(t){
+  t=Math.max(0,Math.min(1,t));
+  const st1=[10,140,70],st2=[255,176,0],st3=[255,68,68];
+  const [a,b,k]=t<.5?[st1,st2,t/.5]:[st2,st3,(t-.5)/.5];
+  return '#'+a.map((v,i)=>Math.round(v+(b[i]-v)*k).toString(16).padStart(2,'0')).join('');
+}
+function renderLoad(){
+  const src=map.getSource('load');if(!src)return;
+  const log=g('load-log');
+  if(!cfg.load){src.setData(EMPTY);if(log)log.textContent='└─ стовпи вимкнені';return}
+  const rows=Object.keys(LOAD).map(id=>{
+    const L=LOAD[id],km=Math.max(L.area/1e6,1e-6);
+    return {id,L,val:cfg.lmode==='dens'?L.n/km:L.n};
+  }).filter(r=>r.val>0);
+  const max=rows.reduce((m,r)=>Math.max(m,r.val),0)||1;
+  src.setData({type:'FeatureCollection',features:rows.map(r=>({
+    type:'Feature',
+    properties:{h:Math.max(cfg.lh*r.val/max,cfg.lh*.07),
+      c:cfg.lcol?ramp(r.val/max):colorOf(r.L.o)},
+    geometry:{type:'Polygon',coordinates:[ring(r.L.o.coords)]}
+  }))});
+  if(!log)return;
+  if(!rows.length){log.textContent='└─ у полігонах поки порожньо';return}
+  rows.sort((a,b)=>b.val-a.val);
+  log.textContent=rows.slice(0,6).map((r,i,arr)=>{
+    const k=Math.max(1,Math.round(8*r.val/max));
+    const v=cfg.lmode==='dens'?r.val.toFixed(1)+'/км²':r.L.n+' шт';
+    return (i===arr.length-1?'└─ ':'├─ ')+'█'.repeat(k)+'░'.repeat(8-k)+' '+r.L.name.slice(0,14)+' · '+v;
+  }).join('\n');
 }
 
 st('тайли їдуть, тримайся',1);
