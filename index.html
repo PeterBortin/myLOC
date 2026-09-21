@@ -399,6 +399,13 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--text
 
     
 
+    <div class="sec" id="s-drape">СУПУТНИК У МЕЖАХ ПОЛІГОНА</div>
+    <div class="r" id="r-sat"><span class="k">підвантажити знімок</span><span class="chk" id="f-sat">[ ]</span></div>
+    <div class="r" id="r-dz"><span class="k">деталізація</span><span class="v" id="v-dz">z17</span></div>
+    <input type="range" id="rg-dz" min="14" max="18" step="1" value="17">
+    <button class="btn" id="btn-retry" style="width:100%;margin-bottom:7px">[ ПОВТОРИТИ ЗАВАНТАЖЕННЯ ]</button>
+    <pre class="dim" id="drape-log" style="font-size:9.5px;white-space:pre-wrap;margin:0 0 6px">└─ знімок ріжеться по контуру і лягає на рельєф, обʼєкти малюються вище</pre>
+
     <div class="sec">ПРІОРИТЕТ</div>
     <div class="opts" id="f-prio">
       <button class="btn" data-prio="low">[ ЗВИЧАЙНИЙ ]</button>
@@ -478,21 +485,21 @@ const ANTS=[[0,4,3],[0.5,4,2.5],[1,4,2],[1.5,4,1.5],[2,4,1],[2.5,4,0.5],
 
 let objects=[],groups=[],draft=null,vxm=[],objm=[],runners={},cur=null,curNew=false;
 let selectedId=null,filter='all',query='',antsPhase=0,lastTick=0,mv=null;
-let cfg={base:'dark',dim:.42,terrain:true,exag:1.4,pitch:62,hill:.35,grid:false,mono:true,theme:'green',url:'',
+let cfg={base:'relief',dim:0,terrain:true,hill:.5,exag:1.4,pitch:62,hill:.35,grid:false,mono:true,theme:'green',url:'',
 };
 let lastStyle={color:'#00ff66',width:3,dash:'solid',opacity:1,fill:true,fillOpacity:.25,head:1,size:1,
   label:true,prio:'low',glyph:'◆',arrowType:'classic',anim:'none',speed:1,inherit:false,
 };
 
 /* прапорець «старт почався». boot його гасить. лишився піднятим -> минулий запуск упав */
-const BASE_KEYS_OK=k=>k==='dark'||k==='sat';
+const BASE_KEYS_OK=k=>k==='dark'||k==='relief';
 const CRASHK='teren.boot.crash';
 let SAFE=false,NO_EXTRAS=false;
 try{SAFE=localStorage.getItem(CRASHK)==='1';localStorage.setItem(CRASHK,'1')}catch(e){}
 try{objects=JSON.parse(localStorage.getItem(LS.obj))||[]}catch(e){}
 try{groups=JSON.parse(localStorage.getItem(LS.grp))||[]}catch(e){}
 try{Object.assign(cfg,JSON.parse(localStorage.getItem(LS.cfg))||{})}catch(e){}
-if(!BASE_KEYS_OK(cfg.base))cfg.base='dark';
+if(!BASE_KEYS_OK(cfg.base))cfg.base='relief';
 if(SAFE){cfg.terrain=false;cfg.load=false;NO_EXTRAS=true;if(cfg.base==='custom')cfg.base='osm'}
 let view={c:[24.50,48.16],z:12.2,p:62,b:-20};
 try{const v=JSON.parse(localStorage.getItem(LS.view));if(v)view=v}catch(e){}
@@ -603,12 +610,12 @@ const DEM_TILE='https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/
 const ESRI='https://server.arcgisonline.com/ArcGIS/rest/services/';
 /* дві підкладки одного провайдера. для темної тримаємо мовчазний резерв,
    бо якщо Esri не доїде — краще OSM, ніж чорний екран */
+const SAT_TILE=ESRI+'World_Imagery/MapServer/tile/{z}/{y}/{x}';
 const BASE={
-  dark:{n:'ТЕМНА + РЕЛЬЄФ',dim:.42,sat:-.9,alts:[
+  relief:{n:'ЧИСТИЙ РЕЛЬЄФ',dim:0,sat:-.9,alts:[]},
+  dark:{n:'ТЕМНА МАПА + РЕЛЬЄФ',dim:.42,sat:-.9,alts:[
     {u:ESRI+'Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',max:16,n:'Esri Dark Gray'},
-    {u:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',max:19,n:'OSM'}]},
-  sat:{n:'СУПУТНИК + РЕЛЬЄФ',dim:.18,sat:-.2,alts:[
-    {u:ESRI+'World_Imagery/MapServer/tile/{z}/{y}/{x}',max:18,n:'Esri World Imagery'}]}
+    {u:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',max:19,n:'OSM'}]}
 };
 const EMPTY={type:'FeatureCollection',features:[]};
 const STYLE={version:8,sources:{
@@ -741,7 +748,7 @@ function renderMarkers(){
 function render(){
   const t=performance.now()/1000;
   safe(()=>setData(t),'дані');
-  safe(renderMarkers,'маркери');safe(renderTree,'журнал');safe(idle,'статус');
+  safe(renderMarkers,'маркери');safe(renderTree,'журнал');safe(syncExtras,'знімки');safe(idle,'статус');
 }
 
 /* ─── АНІМАЦІЯ ─── */
@@ -896,6 +903,8 @@ function openObj(o,isNew){
   show('r-size',t==='marker');show('rg-size',t==='marker');
   show('s-anim',t!=='marker');show('f-anim',t!=='marker');
   show('r-speed',t!=='marker');show('rg-speed',t!=='marker');
+  show('s-drape',t==='polygon');show('r-sat',t==='polygon');show('r-dz',t==='polygon');
+  show('rg-dz',t==='polygon');show('btn-retry',t==='polygon');show('drape-log',t==='polygon');
   show('s-geom',!isNew);show('btn-geom',!isNew);
   g('btn-del').style.display=isNew?'none':'';
   paintColor();
@@ -914,6 +923,8 @@ function openObj(o,isNew){
   chk('f-label',s.label,v=>{cur.st.label=v;previewLive()});
   chk('f-visible',cur.visible,v=>{cur.visible=v;previewLive()});
   chk('f-inherit',s.inherit,v=>{cur.st.inherit=v;previewLive()});
+  chk('f-sat',s.sat,v=>cur.st.sat=v);
+  rng('dz',s.dz||17,v=>'z'+v,v=>cur.st.dz=v);
   open('p-obj');previewLive();
 }
 /* живий перегляд змін просто на мапі */
@@ -942,6 +953,8 @@ g('btn-geom').onclick=()=>{
   startDraw(cur.type,cur.id);
 };
 g('btn-group').onclick=()=>openMove({kind:'obj',id:cur.id,sel:cur.groupId});
+g('btn-retry').onclick=()=>{Object.keys(failed).forEach(k=>delete failed[k]);
+  NO_EXTRAS=false;dlog('пробую ще раз…');safe(syncExtras,'повтор')};
 
 /* ─── ДЕРЕВО ЖУРНАЛУ ─── */
 function metaOf(o){
@@ -1085,11 +1098,12 @@ function baseList(){
     applyBase(n.dataset.base);pickAlt(n.dataset.base);st('підкладка: '+BASE[n.dataset.base].n.toLowerCase())});
 }
 function applyBase(k,ix){
-  if(!BASE[k])k='dark';
+  if(!BASE[k])k='relief';
   cfg.base=k;if(ix!=null)altIx[k]=ix;save();
   const a=BASE[k].alts[altIx[k]]||BASE[k].alts[0];
   safe(()=>{if(map.getLayer('l-base'))map.removeLayer('l-base');
             if(map.getSource('base'))map.removeSource('base')},'зняти базу');
+  if(!a){baseList();safe(()=>{cfg.dim=0;map.setPaintProperty('l-dim','fill-opacity',0)},'без растру');return}
   safe(()=>{
     map.addSource('base',{type:'raster',tileSize:256,maxzoom:a.max,tiles:[a.u]});
     map.addLayer({id:'l-base',type:'raster',source:'base',paint:{
@@ -1106,14 +1120,14 @@ function probeOne(tpl,z,x,y,ms){
     const t0=Date.now(),im=new Image();let done=0;
     const fin=ok=>{if(done)return;done=1;res(ok?Math.max(1,Date.now()-t0):0)};
     im.onload=()=>fin(1);im.onerror=()=>fin(0);setTimeout(()=>fin(0),ms||7000);
-    im.crossOrigin='anonymous';im.src=tpl.replace('{z}',z).replace('{x}',x).replace('{y}',y);
+    im.src=tpl.replace('{z}',z).replace('{x}',x).replace('{y}',y);
   });
 }
 async function pickAlt(k,loud){
   const c=map.getCenter(),z=Math.max(3,Math.min(11,Math.round(map.getZoom())));
   const x=Math.floor(mx(c.lng)*Math.pow(2,z)),y=Math.floor(my(c.lat)*Math.pow(2,z));
   const rows=[],alts=BASE[k].alts;
-  let win=-1;
+  let win=alts.length?-1:0;
   for(let i=0;i<alts.length;i++){
     const ms=await probeOne(alts[i].u,z,x,y);
     rows.push((alts[i].n+' ').padEnd(20,'.')+' '+(ms?'ok '+ms+' мс':'FAIL'));
@@ -1124,9 +1138,11 @@ async function pickAlt(k,loud){
   const el=g('src-log');
   if(el)el.textContent=rows.map((r,i)=>(i===rows.length-1?'└─ ':'├─ ')+r).join('\n');
   if(win<0){st('джерело мапи не відповідає на цій мережі');return}
-  if(win!==altIx[k]){applyBase(k,win);st('перекинув на '+alts[win].n)}
-  else if(loud)st('джерело живе: '+alts[win].n);
-  if(!dem&&cfg.terrain){applyTerrain(false);st('DEM не доїхав — рельєф вимкнув, мапа працює')}
+  if(alts.length&&win!==altIx[k]){applyBase(k,win);st('перекинув на '+alts[win].n)}
+  else if(loud&&alts.length)st('джерело живе: '+alts[win].n);
+  /* рельєф НЕ чіпаємо: пробник — лише довідка. вимикає його тільки сам MapLibre,
+     якщо жоден DEM-тайл так і не приїхав */
+  if(!dem&&!demOk)logSrc('DEM: пробник не дістав тайл, чекаю на мапу');
 }
 map.on('sourcedata',e=>{
   if(e.sourceId==='dem'&&e.tile&&!demOk){
@@ -1139,6 +1155,9 @@ map.on('error',e=>{
   const id=e&&e.sourceId;if(!id)return;
   errCount[id]=(errCount[id]||0)+1;
   if(errCount[id]===6)logSrc(id+': тайли не йдуть');
+  if(id==='dem'&&!demOk&&errCount[id]===25&&cfg.terrain){
+    applyTerrain(false);st('DEM мовчить — рельєф вимкнув');
+  }
 });
 g('btn-probe').onclick=()=>pickAlt(cfg.base,1);
 
@@ -1280,7 +1299,7 @@ function boot(){
   booted=true;
   safe(()=>{
   setTheme(cfg.theme||'green');
-  applyBase(BASE[cfg.base]?cfg.base:'dark');
+  applyBase(BASE[cfg.base]?cfg.base:'relief');
   applyTerrain(cfg.terrain);
   setTimeout(()=>safe(()=>pickAlt(cfg.base),'перевірка джерела'),300);
   g('rg-exag').value=cfg.exag;g('v-exag').textContent=cfg.exag.toFixed(1)+'×';
@@ -1330,9 +1349,90 @@ function hardReload(){
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&booted)safe(render,'повернення')});
 window.addEventListener('online',()=>{st('мережа є, тягну тайли');safe(hardReload,'online')});
 
+
+/* ═══════════ СУПУТНИК У МЕЖАХ ПОЛІГОНА ═══════════
+   мозаїка тайлів -> canvas -> обріз по контуру -> image-джерело під обʼєктами.
+   повністю ізольовано: якщо щось не так, у стиль мапи не потрапляє нічого   */
+const extras={},failed={},hidden=document.createElement('div');
+hidden.style.cssText='position:absolute;left:-99999px;top:0;width:1px;height:1px;overflow:hidden';
+document.body.appendChild(hidden);
+const lngOf=(x,z)=>x/Math.pow(2,z)*360-180;
+const latOf=(y,z)=>deg(Math.atan(Math.sinh(Math.PI-2*Math.PI*y/Math.pow(2,z))));
+function dlog(t){const e=g('drape-log');if(e)e.textContent='└─ '+t}
+function sigOf(o){return (o.st.dz||17)+':'+o.coords.map(p=>p[0].toFixed(5)+p[1].toFixed(5)).join('')}
+function loadImg(u){return new Promise(r=>{const i=new Image();i.crossOrigin='anonymous';
+  i.onload=()=>r(i);i.onerror=()=>r(null);setTimeout(()=>r(null),9000);i.src=u})}
+async function buildSat(coords,z){
+  const lngs=coords.map(p=>p[0]),lats=coords.map(p=>p[1]);
+  const w=Math.min(...lngs),e=Math.max(...lngs),s2=Math.min(...lats),n=Math.max(...lats);
+  let x0,x1,y0,y1;
+  for(;z>=12;z--){
+    x0=Math.floor(mx(w)*Math.pow(2,z));x1=Math.floor(mx(e)*Math.pow(2,z));
+    y0=Math.floor(my(n)*Math.pow(2,z));y1=Math.floor(my(s2)*Math.pow(2,z));
+    if((x1-x0+1)*(y1-y0+1)<=64)break;
+  }
+  const TS=256,cv=document.createElement('canvas');
+  cv.width=(x1-x0+1)*TS;cv.height=(y1-y0+1)*TS;
+  const ctx=cv.getContext('2d');
+  if(!ctx)throw new Error('canvas недоступний');
+  const jobs=[];
+  for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++)jobs.push({x,y});
+  dlog('мозаїка: '+jobs.length+' тайлів (z'+z+')');
+  let got=0,done=0;
+  for(let i=0;i<jobs.length;i+=8){
+    const part=jobs.slice(i,i+8);
+    const ims=await Promise.all(part.map(t=>loadImg(
+      SAT_TILE.replace('{z}',z).replace('{x}',t.x).replace('{y}',t.y))));
+    ims.forEach((im,k)=>{if(im){ctx.drawImage(im,(part[k].x-x0)*TS,(part[k].y-y0)*TS,TS,TS);got++}done++});
+    dlog('тайли: '+done+'/'+jobs.length+' (прийшло '+got+')');
+  }
+  if(!got)throw new Error('знімки не доїхали');
+  ctx.globalCompositeOperation='destination-in';
+  ctx.beginPath();
+  ring(coords).forEach((p,i)=>{
+    const px=(mx(p[0])*Math.pow(2,z)-x0)*TS,py=(my(p[1])*Math.pow(2,z)-y0)*TS;
+    i?ctx.lineTo(px,py):ctx.moveTo(px,py);
+  });
+  ctx.closePath();ctx.fillStyle='#fff';ctx.fill();
+  ctx.globalCompositeOperation='source-over';
+  return {cv,coordinates:[[lngOf(x0,z),latOf(y0,z)],[lngOf(x1+1,z),latOf(y0,z)],
+                          [lngOf(x1+1,z),latOf(y1+1,z)],[lngOf(x0,z),latOf(y1+1,z)]]};
+}
+async function ensureSat(o){
+  const id='sat-'+o.id,sg=sigOf(o);
+  if(failed[id]===sg||(extras[id]&&extras[id].sg===sg))return;
+  dropExtra(id);extras[id]={sg,busy:1};
+  st('тягну знімок на «'+(o.name||'полігон')+'»…',1);
+  try{
+    const r=await buildSat(o.coords,Math.round(o.st.dz||17));
+    if(!r.coordinates.every(c=>isFinite(c[0])&&isFinite(c[1]))||!r.cv.width)throw new Error('криві межі');
+    let url=null;try{url=r.cv.toDataURL('image/jpeg',0.86)}catch(e){throw new Error('канва закрита CORS')}
+    if(map.getSource(id)){extras[id].busy=0;return}
+    map.addSource(id,{type:'image',url,coordinates:r.coordinates});
+    map.addLayer({id:'l-'+id,type:'raster',source:id,
+      paint:{'raster-opacity':.95,'raster-fade-duration':0}},'obj-sel');
+    extras[id].busy=0;dlog('знімок ліг по контуру');st('знімок ліг по контуру');
+  }catch(err){
+    safe(()=>{if(map.getLayer('l-'+id))map.removeLayer('l-'+id);if(map.getSource(id))map.removeSource(id)},'прибрати знімок');
+    delete extras[id];failed[id]=sg;
+    dlog('не вийшло: '+(err&&err.message||err));st('знімок не зайшов: '+(err&&err.message||''));
+  }
+}
+function dropExtra(id){
+  if(map.getLayer('l-'+id))map.removeLayer('l-'+id);
+  if(map.getSource(id))map.removeSource(id);
+  delete extras[id];
+}
+function syncExtras(){
+  if(NO_EXTRAS){Object.keys(extras).forEach(dropExtra);return}
+  const want={};
+  objects.forEach(o=>{if(o.type==='polygon'&&visEff(o)&&o.st.sat){want['sat-'+o.id]=1;ensureSat(o)}});
+  Object.keys(extras).forEach(id=>{if(!want[id]&&!extras[id].busy)dropExtra(id)});
+}
+
 window.addEventListener('error',e=>{try{logSrc('JS: '+(e.message||'')+' @'+(e.lineno||''))}catch(_){}});
 window.addEventListener('unhandledrejection',e=>{try{logSrc('PROMISE: '+(e.reason&&e.reason.message||e.reason))}catch(_){}});
-setTimeout(()=>{if(cfg.terrain&&!demOk)st('DEM не доїхав — працюю пласко, мапа на місці')},9000);
+setTimeout(()=>{if(cfg.terrain&&!demOk)st('DEM ще не приїхав, чекаю')},12000);
 st('тайли їдуть, тримайся',1);
 })()}
 </script>
