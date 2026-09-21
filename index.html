@@ -205,6 +205,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--text
 .node:active{background:var(--bg-hover)}
 .node .pre{color:var(--text-dim);flex-shrink:0}
 .node .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.node .col{display:flex;flex-direction:column;justify-content:center;flex:1;min-width:0;line-height:1.4}
+.node .mt2{font-size:9.5px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .node .mt{color:var(--text-dim);font-size:9.5px;padding-left:7px;flex-shrink:0;
   max-width:92px;overflow:hidden;text-overflow:ellipsis}
 .node.grp .nm{color:var(--text-bright);font-weight:600}
@@ -352,6 +354,7 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--text
     <div class="sec">ПРАВА НА ДАНІ</div>
     <pre class="dim" style="font-size:9.5px;white-space:pre-wrap;margin:0">└─ © Esri · OpenStreetMap contributors · Overpass API · AWS Terrain Tiles</pre>
     <div class="sec">СТАН ДЖЕРЕЛ</div>
+    <button class="btn" id="btn-probe" style="width:100%;margin-bottom:7px">[ ПЕРЕВІРИТИ ДЖЕРЕЛА ]</button>
     <pre id="src-log" class="dim" style="font-size:9.5px;white-space:pre-wrap;margin:0">└─ помилок не було</pre>
   </div>
 </div>
@@ -513,7 +516,7 @@ const ANTS=[[0,4,3],[0.5,4,2.5],[1,4,2],[1.5,4,1.5],[2,4,1],[2.5,4,0.5],
 
 let objects=[],groups=[],draft=null,vxm=[],objm=[],runners={},cur=null,curNew=false;
 let selectedId=null,filter='all',query='',antsPhase=0,lastTick=0,mv=null;
-let cfg={base:'dark',terrain:true,exag:1.4,pitch:62,hill:.35,grid:false,mono:true,theme:'green',url:'',
+let cfg={base:'osm',terrain:true,exag:1.4,pitch:62,hill:.35,grid:false,mono:true,theme:'green',url:'',
   load:false,lmode:'count',lh:600,lcol:true};
 let LOAD={};
 let lastStyle={color:'#00ff66',width:3,dash:'solid',opacity:1,fill:true,fillOpacity:.25,head:1,size:1,
@@ -601,24 +604,25 @@ const colorOf=o=>(o.st.inherit&&gColor(o.groupId))||o.st.color;
 
 /* ─── СТИЛЬ МАПИ ─── */
 const SAT_TILE='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-const BASES={
-  dark:{n:'ТЕМНА + РЕЛЬЄФ',src:{type:'raster',tileSize:256,maxzoom:16,tiles:[
-    'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}']}},
-  sat:{n:'СУПУТНИК + РЕЛЬЄФ',src:{type:'raster',tileSize:256,maxzoom:18,tiles:[SAT_TILE]}},
-  none:{n:'ТІЛЬКИ РЕЛЬЄФ',src:null},
-  custom:{n:'ВЛАСНЕ ДЖЕРЕЛО',src:null}
+const DEM_TILE='https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png';
+const TILESETS={
+  osm:{n:'OSM ТЕМНА',max:19,dark:1,tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png']},
+  esri_dark:{n:'ESRI DARK GRAY',max:16,tiles:[
+    'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}']},
+  esri_sat:{n:'ESRI СУПУТНИК',max:18,tiles:[SAT_TILE]},
+  topo:{n:'OPENTOPOMAP',max:17,tiles:[
+    'https://a.tile.opentopomap.org/{z}/{x}/{y}.png','https://b.tile.opentopomap.org/{z}/{x}/{y}.png']},
+  none:{n:'ТІЛЬКИ РЕЛЬЄФ',max:19,tiles:null},
+  custom:{n:'ВЛАСНЕ ДЖЕРЕЛО',max:20,tiles:null}
 };
+const FALLBACK=['osm','esri_dark','esri_sat','topo','none'];
 const EMPTY={type:'FeatureCollection',features:[]};
 const STYLE={version:8,sources:{
-    'b-dark':BASES.dark.src,'b-sat':BASES.sat.src,
-    dem:{type:'raster-dem',tileSize:256,maxzoom:14,encoding:'terrarium',
-      tiles:['https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png']},
+    dem:{type:'raster-dem',tileSize:256,maxzoom:14,encoding:'terrarium',tiles:[DEM_TILE]},
     grid:{type:'geojson',data:EMPTY},load:{type:'geojson',data:EMPTY},
     objects:{type:'geojson',data:EMPTY},draft:{type:'geojson',data:EMPTY}},
   layers:[
     {id:'bg',type:'background',paint:{'background-color':'#05080a'}},
-    {id:'l-dark',type:'raster',source:'b-dark'},
-    {id:'l-sat',type:'raster',source:'b-sat',layout:{visibility:'none'}},
     {id:'l-hill',type:'hillshade',source:'dem',paint:{'hillshade-exaggeration':.35,
       'hillshade-shadow-color':'#000','hillshade-highlight-color':'#6fffa8','hillshade-accent-color':'#03150a'}},
     {id:'l-grid',type:'line',source:'grid',layout:{visibility:'none'},
@@ -723,7 +727,9 @@ function buildFeatures(t){
   return {type:'FeatureCollection',features:f};
 }
 const setData=t=>{const s=map.getSource('objects');if(!s)return;
-  const d=buildFeatures(t);s.setData(d);dataOk=d.features.length>0||!objects.filter(o=>visEff(o)).length};
+  const d=buildFeatures(t);s.setData(d);
+  const need=objects.filter(o=>visEff(o)&&o.type!=='marker').length;
+  dataOk=d.features.length>0||!need;};
 
 /* ─── МАРКЕРИ ТА ПІДПИСИ ─── */
 const anchorOf=o=>o.type==='marker'?o.coords[0]:o.type==='polygon'?mid(o.coords):o.coords[Math.floor(o.coords.length/2)];
@@ -990,10 +996,10 @@ const GLYPH_T={line:'╱',polygon:'▱',arrow:'➤',marker:'◆',building:'⬢'}
 function rowObj(o,pre){
   return '<div class="node'+(visEff(o)?'':' off')+'" data-o="'+o.id+'">'+
     '<span class="pre">'+pre+' </span>'+
-    '<span class="nm" style="color:'+colorOf(o)+'">'+GLYPH_T[o.type]+' '+esc(o.name||TYPE[o.type])+
+    '<span class="col"><span class="nm" style="color:'+colorOf(o)+'">'+GLYPH_T[o.type]+' '+esc(o.name||TYPE[o.type])+
       (o.st.anim&&o.st.anim!=='none'?' <span class="dim">~anim</span>':'')+
       (o.st.prio==='high'?' <span class="dim">!!</span>':'')+'</span>'+
-    '<span class="mt">'+metaOf(o)+'</span>'+
+    '<span class="mt2">'+metaOf(o)+'</span></span>'+
     '<span class="acts"><b data-act="vis">'+(o.visible?'◉':'○')+'</b><b data-act="edit">✎</b><b data-act="del">✕</b></span></div>';
 }
 function rowGrp(gr,pre){
@@ -1114,37 +1120,86 @@ let srcLog=[],errCount={};
 function logSrc(t){srcLog.unshift(t);srcLog=srcLog.slice(0,5);
   g('src-log').textContent=srcLog.map((x,i)=>(i===srcLog.length-1?'└─ ':'├─ ')+x).join('\n')||'└─ помилок не було'}
 function baseList(){
-  g('base-list').innerHTML=Object.keys(BASES).filter(k=>k!=='custom'||cfg.url)
-    .map(k=>'<div class="r" data-base="'+k+'"><span class="k">'+(cfg.base===k?'(•)':'( )')+' '+BASES[k].n+'</span></div>').join('');
-  g('base-list').querySelectorAll('[data-base]').forEach(n=>n.onclick=()=>{applyBase(n.dataset.base);st('підкладка: '+BASES[n.dataset.base].n.toLowerCase())});
+  const el=g('base-list');if(!el)return;
+  el.innerHTML=Object.keys(TILESETS).filter(k=>k!=='custom'||cfg.url)
+    .map(k=>'<div class="r" data-base="'+k+'"><span class="k">'+(cfg.base===k?'(•)':'( )')+' '+TILESETS[k].n+'</span></div>').join('');
+  el.querySelectorAll('[data-base]').forEach(n=>n.onclick=()=>{
+    tried={};applyBase(n.dataset.base);st('підкладка: '+TILESETS[n.dataset.base].n.toLowerCase())});
 }
+let baseOk=0,baseTimer=null,tried={};
 function applyBase(k){
-  cfg.base=k;
-  map.setLayoutProperty('l-dark','visibility',k==='dark'?'visible':'none');
-  map.setLayoutProperty('l-sat','visibility',k==='sat'?'visible':'none');
-  if(map.getLayer('l-custom'))map.setLayoutProperty('l-custom','visibility',k==='custom'?'visible':'none');
-  save();baseList();
+  if(!TILESETS[k]||(k==='custom'&&!cfg.url))k='osm';
+  cfg.base=k;save();
+  clearTimeout(baseTimer);baseOk=0;
+  safe(()=>{if(map.getLayer('l-base'))map.removeLayer('l-base');
+            if(map.getSource('base'))map.removeSource('base')},'зняти базу');
+  const t=TILESETS[k],tiles=k==='custom'?[cfg.url]:t.tiles;
+  if(tiles&&tiles.length){
+    safe(()=>{
+      map.addSource('base',{type:'raster',tileSize:256,maxzoom:t.max||19,tiles:tiles.slice()});
+      map.addLayer({id:'l-base',type:'raster',source:'base',paint:{
+        'raster-fade-duration':120,'raster-brightness-min':0,
+        'raster-brightness-max':t.dark?.5:1,
+        'raster-saturation':t.dark?-.75:-.15,'raster-contrast':t.dark?.2:.05}},'l-hill');
+    },'база '+k);
+    baseTimer=setTimeout(()=>{
+      if(baseOk)return;
+      tried[k]=1;logSrc(t.n+': жодного тайла за 8 с');
+      const next=FALLBACK.find(x=>!tried[x]);
+      if(next){st(t.n+' мовчить → пробую '+TILESETS[next].n);applyBase(next)}
+      else st('жодне джерело не відповідає. тисни ПЕРЕВІРИТИ ДЖЕРЕЛА');
+    },8000);
+  }
+  baseList();
 }
-function mountCustom(url){
-  if(map.getLayer('l-custom')){map.removeLayer('l-custom');map.removeSource('b-custom')}
-  if(!url)return;
-  map.addSource('b-custom',{type:'raster',tileSize:256,maxzoom:20,tiles:[url]});
-  map.addLayer({id:'l-custom',type:'raster',source:'b-custom',layout:{visibility:'none'}},'l-hill');
-}
+function mountCustom(url){if(url)TILESETS.custom.tiles=[url]}
 g('btn-url').onclick=()=>{
   const u=g('in-url').value.trim();
   if(!/\{z\}/.test(u)||!/\{x\}/.test(u)||!/\{y\}/.test(u)){st('url має містити {z}/{x}/{y}');return}
-  cfg.url=u;save();mountCustom(u);applyBase('custom');logSrc('підключено власне джерело');st('власне джерело підключено');
+  cfg.url=u;save();mountCustom(u);tried={};applyBase('custom');
+  logSrc('підключено власне джерело');st('власне джерело підключено');
 };
-g('btn-url-off').onclick=()=>{cfg.url='';g('in-url').value='';save();mountCustom('');applyBase('dark');st('власне джерело прибрано')};
+g('btn-url-off').onclick=()=>{cfg.url='';g('in-url').value='';TILESETS.custom.tiles=null;save();
+  tried={};applyBase('osm');st('власне джерело прибрано')};
+/* лічильник успішних тайлів бази */
+map.on('sourcedata',e=>{
+  if(e.sourceId==='base'&&e.tile&&(!e.tile.state||e.tile.state==='loaded')){
+    if(!baseOk){baseOk=1;clearTimeout(baseTimer);logSrc(TILESETS[cfg.base].n+': тайли пішли')}
+  }
+  if(e.sourceId==='dem'&&e.tile)demOk=1;
+});
+let demOk=0;
 map.on('error',e=>{
-  const s=e&&e.sourceId;if(!s)return;
-  errCount[s]=(errCount[s]||0)+1;
-  if(errCount[s]===4||errCount[s]%40===0){
-    logSrc(s+': тайли не йдуть ('+errCount[s]+')');
-    if(s==='b-custom'&&cfg.base==='custom'){applyBase('dark');st('власне джерело мовчить — кинув на темну')}
+  const id=e&&e.sourceId;if(!id)return;
+  errCount[id]=(errCount[id]||0)+1;
+  if(errCount[id]===4||errCount[id]%40===0)logSrc(id+': тайли не йдуть ('+errCount[id]+')');
+  if(id==='dem'&&!demOk&&errCount[id]===10&&cfg.terrain){
+    applyTerrain(false);st('DEM не доїхав — вимкнув рельєф, мапа лишається');
   }
 });
+/* діагностика: чим твоя мережа взагалі годує */
+function probeSources(){
+  const z=Math.max(3,Math.min(11,Math.round(map.getZoom()))),c=map.getCenter();
+  const x=Math.floor(mx(c.lng)*Math.pow(2,z)),y=Math.floor(my(c.lat)*Math.pow(2,z));
+  const list=[['OSM',TILESETS.osm.tiles[0]],['ESRI DARK',TILESETS.esri_dark.tiles[0]],
+    ['ESRI SAT',TILESETS.esri_sat.tiles[0]],['OPENTOPO',TILESETS.topo.tiles[0]],['AWS DEM',DEM_TILE]];
+  if(cfg.url)list.push(['ВЛАСНЕ',cfg.url]);
+  const out=list.map(l=>l[0]+' …');
+  const paint=()=>{g('src-log').textContent=out.map((r,j)=>(j===out.length-1?'└─ ':'├─ ')+r).join('\n')};
+  paint();st('перевіряю '+list.length+' джерел…',1);
+  let done=0;
+  list.forEach((it,i)=>{
+    const url=it[1].replace('{z}',z).replace('{x}',x).replace('{y}',y);
+    const t0=performance.now(),im=new Image();im.crossOrigin='anonymous';let fired=0;
+    const fin=ok=>{if(fired)return;fired=1;
+      out[i]=(it[0]+' ').padEnd(12,'.')+' '+(ok?'ok '+Math.round(performance.now()-t0)+' мс':'FAIL');
+      paint();if(++done===list.length)st('перевірка завершена — дивись СТАН ДЖЕРЕЛ');};
+    im.onload=()=>fin(1);im.onerror=()=>fin(0);
+    setTimeout(()=>fin(0),9000);
+    im.src=url;
+  });
+}
+g('btn-probe').onclick=probeSources;
 
 /* ─── СІТКА ─── */
 function buildGrid(){
@@ -1283,7 +1338,7 @@ function boot(){
   safe(()=>{
   setTheme(cfg.theme||'green');
   if(cfg.url){g('in-url').value=cfg.url;mountCustom(cfg.url)}
-  applyBase(BASES[cfg.base]?cfg.base:'dark');
+  applyBase(TILESETS[cfg.base]?cfg.base:'osm');
   applyTerrain(cfg.terrain);
   g('rg-exag').value=cfg.exag;g('v-exag').textContent=cfg.exag.toFixed(1)+'×';
   g('rg-pitch').value=Math.round(map.getPitch());g('v-pitch').textContent=Math.round(map.getPitch())+'°';
@@ -1316,7 +1371,7 @@ const bootPoll=setInterval(()=>{
   safe(boot,'повторний старт');
 },350);
 /* сторож: обʼєкти мають бути на мапі, інакше перемальовуємо */
-let dataOk=false;
+var dataOk=false;
 setInterval(()=>{
   if(!booted)return;
   const want=objects.filter(o=>visEff(o)).length;
@@ -1326,14 +1381,7 @@ setInterval(()=>{
 function hardReload(){
   st('перетягую мапу з нуля…',1);
   safe(()=>{booted=false;boot()},'reboot');
-  safe(()=>{
-    ['l-dark','l-sat','l-custom'].forEach(id=>{
-      if(!map.getLayer(id))return;
-      const v=map.getLayoutProperty(id,'visibility');
-      map.setLayoutProperty(id,'visibility','none');
-      setTimeout(()=>map.setLayoutProperty(id,'visibility',v||'visible'),60);
-    });
-  },'тайли');
+  safe(()=>{tried={};applyBase(cfg.base)},'тайли');
   safe(render,'рендер');
   map.triggerRepaint();
   setTimeout(()=>st('перезавантажив'),900);
@@ -1372,14 +1420,16 @@ async function buildSatCanvas(coords,z){
   const ctx=cv.getContext('2d');
   const jobs=[];
   for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++)jobs.push({x,y});
+  const tpl=(cfg.base==='custom'&&cfg.url)?cfg.url:SAT_TILE;
   dlog('клею мозаїку: '+jobs.length+' тайлів (z'+z+')');
-  let done=0;
+  let done=0,got=0;
   for(let i=0;i<jobs.length;i+=8){
     const part=jobs.slice(i,i+8);
-    const imgs=await Promise.all(part.map(t=>loadImg(SAT_TILE.replace('{z}',z).replace('{x}',t.x).replace('{y}',t.y))));
-    imgs.forEach((im,k)=>{if(im)ctx.drawImage(im,(part[k].x-x0)*TS,(part[k].y-y0)*TS,TS,TS);done++});
-    dlog('тайли: '+done+'/'+jobs.length);
+    const imgs=await Promise.all(part.map(t=>loadImg(tpl.replace('{z}',z).replace('{x}',t.x).replace('{y}',t.y))));
+    imgs.forEach((im,k)=>{if(im){ctx.drawImage(im,(part[k].x-x0)*TS,(part[k].y-y0)*TS,TS,TS);got++}done++});
+    dlog('тайли: '+done+'/'+jobs.length+' (прийшло '+got+')');
   }
+  if(!got)throw new Error('джерело знімків мовчить — перевір ДЖЕРЕЛА в Шарах');
   ctx.globalCompositeOperation='destination-in';
   ctx.beginPath();
   ring(coords).forEach((p,i)=>{
@@ -1404,7 +1454,8 @@ async function ensureSat(o){
     map.addLayer({id:'l-'+id,type:'raster',source:id,
       paint:{'raster-opacity':.95,'raster-fade-duration':0}},'anchor-extras');
     extras[id].busy=0;dlog('знімок ліг по контуру');st('знімок ліг по контуру');
-  }catch(err){delete extras[id];dlog('знімок не зайшов: '+err);st('знімок не зайшов, спробуй нижчу деталізацію')}
+  }catch(err){delete extras[id];dlog('знімок не зайшов: '+(err&&err.message||err));
+    st(String(err&&err.message||'').indexOf('мовчить')>=0?'джерело знімків недоступне — тисни ПЕРЕВІРИТИ ДЖЕРЕЛА':'знімок не зайшов, спробуй нижчу деталізацію')}
 }
 async function ensureBld(o){
   const id='bld-'+o.id,sg=sig(o,'bld');
