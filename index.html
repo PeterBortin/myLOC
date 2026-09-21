@@ -339,20 +339,10 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--text
 
     
 
-    <div class="sec">ВЛАСНЕ ДЖЕРЕЛО (URL-ШАБЛОН + КЛЮЧ API)</div>
-    <input class="inp" id="in-url" placeholder="https://tiles.example/{z}/{x}/{y}.png?key=..." autocomplete="off" spellcheck="false" style="font-size:12px">
-    <div style="display:flex;gap:5px;margin-top:5px">
-      <button class="btn" id="btn-url" style="flex:1">[ ПІДКЛЮЧИТИ ]</button>
-      <button class="btn warn" id="btn-url-off" style="flex:0 0 40%">[ ПРИБРАТИ ]</button>
-    </div>
-    <pre class="dim" style="font-size:9.5px;white-space:pre-wrap;margin:8px 0 0">┌─ сюди вставляй свій MapTiler/Mapbox/локальний сервер
-├─ ключ пиши прямо в URL, він лишається у цьому браузері
-└─ жоден напис поверх мапи не малюється: усі джерела
-   і їх підписи живуть у цій панелі та в рядку знизу</pre>
     <div class="sec">ПРАВА НА ДАНІ</div>
     <pre class="dim" style="font-size:9.5px;white-space:pre-wrap;margin:0">└─ © Esri · OpenStreetMap contributors · Overpass API · AWS Terrain Tiles</pre>
     <div class="sec">СТАН ДЖЕРЕЛ</div>
-    <button class="btn" id="btn-probe" style="width:100%;margin-bottom:7px">[ ПІДІБРАТИ ПІДКЛАДКУ ]</button>
+    <button class="btn" id="btn-probe" style="width:100%;margin-bottom:7px">[ ПЕРЕВІРИТИ ДЖЕРЕЛО ]</button>
     <pre id="src-log" class="dim" style="font-size:9.5px;white-space:pre-wrap;margin:0">└─ помилок не було</pre>
   </div>
 </div>
@@ -488,20 +478,21 @@ const ANTS=[[0,4,3],[0.5,4,2.5],[1,4,2],[1.5,4,1.5],[2,4,1],[2.5,4,0.5],
 
 let objects=[],groups=[],draft=null,vxm=[],objm=[],runners={},cur=null,curNew=false;
 let selectedId=null,filter='all',query='',antsPhase=0,lastTick=0,mv=null;
-let cfg={base:'osm',dim:.55,terrain:true,exag:1.4,pitch:62,hill:.35,grid:false,mono:true,theme:'green',url:'',
+let cfg={base:'dark',dim:.42,terrain:true,exag:1.4,pitch:62,hill:.35,grid:false,mono:true,theme:'green',url:'',
 };
 let lastStyle={color:'#00ff66',width:3,dash:'solid',opacity:1,fill:true,fillOpacity:.25,head:1,size:1,
   label:true,prio:'low',glyph:'◆',arrowType:'classic',anim:'none',speed:1,inherit:false,
 };
 
 /* прапорець «старт почався». boot його гасить. лишився піднятим -> минулий запуск упав */
+const BASE_KEYS_OK=k=>k==='dark'||k==='sat';
 const CRASHK='teren.boot.crash';
 let SAFE=false,NO_EXTRAS=false;
 try{SAFE=localStorage.getItem(CRASHK)==='1';localStorage.setItem(CRASHK,'1')}catch(e){}
 try{objects=JSON.parse(localStorage.getItem(LS.obj))||[]}catch(e){}
 try{groups=JSON.parse(localStorage.getItem(LS.grp))||[]}catch(e){}
 try{Object.assign(cfg,JSON.parse(localStorage.getItem(LS.cfg))||{})}catch(e){}
-if(cfg.dim===undefined)cfg.dim=.55;
+if(!BASE_KEYS_OK(cfg.base))cfg.base='dark';
 if(SAFE){cfg.terrain=false;cfg.load=false;NO_EXTRAS=true;if(cfg.base==='custom')cfg.base='osm'}
 let view={c:[24.50,48.16],z:12.2,p:62,b:-20};
 try{const v=JSON.parse(localStorage.getItem(LS.view));if(v)view=v}catch(e){}
@@ -608,23 +599,17 @@ const visEff=o=>o.visible&&gVis(o.groupId);
 const colorOf=o=>(o.st.inherit&&gColor(o.groupId))||o.st.color;
 
 /* ─── СТИЛЬ МАПИ ─── */
-const SAT_TILE='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 const DEM_TILE='https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png';
-const TILESETS={
-  osm:{n:'OSM (ЗАТЕМНЕНА)',max:19,inv:1,tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png']},
-  osm_hot:{n:'OSM FR (РЕЗЕРВ)',max:19,inv:1,tiles:[
-    'https://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png','https://b.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png']},
-  osm_de:{n:'OSM DE',max:18,tiles:['https://tile.openstreetmap.de/{z}/{x}/{y}.png']},
-  carto:{n:'CARTO VOYAGER',max:19,tiles:['https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png']},
-  esri_dark:{n:'ESRI DARK GRAY',max:16,tiles:[
-    'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}']},
-  esri_sat:{n:'ESRI СУПУТНИК',max:18,tiles:[SAT_TILE]},
-  topo:{n:'OPENTOPOMAP',max:17,inv:1,tiles:[
-    'https://a.tile.opentopomap.org/{z}/{x}/{y}.png','https://b.tile.opentopomap.org/{z}/{x}/{y}.png']},
-  none:{n:'ТІЛЬКИ РЕЛЬЄФ',max:19,tiles:null},
-  custom:{n:'ВЛАСНЕ ДЖЕРЕЛО',max:20,tiles:null}
+const ESRI='https://server.arcgisonline.com/ArcGIS/rest/services/';
+/* дві підкладки одного провайдера. для темної тримаємо мовчазний резерв,
+   бо якщо Esri не доїде — краще OSM, ніж чорний екран */
+const BASE={
+  dark:{n:'ТЕМНА + РЕЛЬЄФ',dim:.42,sat:-.9,alts:[
+    {u:ESRI+'Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',max:16,n:'Esri Dark Gray'},
+    {u:'https://tile.openstreetmap.org/{z}/{x}/{y}.png',max:19,n:'OSM'}]},
+  sat:{n:'СУПУТНИК + РЕЛЬЄФ',dim:.18,sat:-.2,alts:[
+    {u:ESRI+'World_Imagery/MapServer/tile/{z}/{y}/{x}',max:18,n:'Esri World Imagery'}]}
 };
-const FALLBACK=['osm','osm_de','osm_hot','carto','topo','esri_dark','esri_sat','none'];
 const EMPTY={type:'FeatureCollection',features:[]};
 const STYLE={version:8,sources:{
     dem:{type:'raster-dem',tileSize:256,maxzoom:14,encoding:'terrarium',tiles:[DEM_TILE]},
@@ -1091,101 +1076,71 @@ g('mv-ok').onclick=()=>{
 let srcLog=[],errCount={};
 function logSrc(t){srcLog.unshift(t);srcLog=srcLog.slice(0,5);
   g('src-log').textContent=srcLog.map((x,i)=>(i===srcLog.length-1?'└─ ':'├─ ')+x).join('\n')||'└─ помилок не було'}
+let demOk=0,altIx={dark:0,sat:0};
 function baseList(){
   const el=g('base-list');if(!el)return;
-  el.innerHTML=Object.keys(TILESETS).filter(k=>k!=='custom'||cfg.url)
-    .map(k=>'<div class="r" data-base="'+k+'"><span class="k">'+(cfg.base===k?'(•)':'( )')+' '+TILESETS[k].n+'</span></div>').join('');
+  el.innerHTML=Object.keys(BASE).map(k=>'<div class="r" data-base="'+k+'"><span class="k">'+
+    (cfg.base===k?'(•)':'( )')+' '+BASE[k].n+'</span></div>').join('');
   el.querySelectorAll('[data-base]').forEach(n=>n.onclick=()=>{
-    cfg.manual=1;tried={};applyBase(n.dataset.base);st('підкладка: '+TILESETS[n.dataset.base].n.toLowerCase())});
+    applyBase(n.dataset.base);pickAlt(n.dataset.base);st('підкладка: '+BASE[n.dataset.base].n.toLowerCase())});
 }
-let baseOk=0,baseTimer=null,tried={};
-function applyBase(k){
-  if(!TILESETS[k]||(k==='custom'&&!cfg.url))k='osm';
-  cfg.base=k;save();
-  clearTimeout(baseTimer);baseOk=0;
+function applyBase(k,ix){
+  if(!BASE[k])k='dark';
+  cfg.base=k;if(ix!=null)altIx[k]=ix;save();
+  const a=BASE[k].alts[altIx[k]]||BASE[k].alts[0];
   safe(()=>{if(map.getLayer('l-base'))map.removeLayer('l-base');
             if(map.getSource('base'))map.removeSource('base')},'зняти базу');
-  const t=TILESETS[k],tiles=k==='custom'?[cfg.url]:t.tiles;
-  if(k!=='none'&&k!=='custom')setInv(!!t.inv);
-  if(tiles&&tiles.length){
-    safe(()=>{
-      map.addSource('base',{type:'raster',tileSize:256,maxzoom:t.max||19,tiles:tiles.slice()});
-      map.addLayer({id:'l-base',type:'raster',source:'base',paint:{
-        'raster-fade-duration':120,'raster-brightness-min':0,
-        'raster-brightness-max':.92,
-        'raster-saturation':cfg.mono?-.95:-.3,'raster-contrast':.12}},'l-dim');
-    },'база '+k);
-    baseTimer=setTimeout(()=>{
-      if(baseOk)return;
-      tried[k]=1;logSrc(t.n+': жодного тайла за 8 с');
-      const next=FALLBACK.find(x=>!tried[x]);
-      if(next){st(t.n+' мовчить → пробую '+TILESETS[next].n);applyBase(next)}
-      else st('жодне джерело не відповідає. тисни ПЕРЕВІРИТИ ДЖЕРЕЛА');
-    },8000);
-  }
+  safe(()=>{
+    map.addSource('base',{type:'raster',tileSize:256,maxzoom:a.max,tiles:[a.u]});
+    map.addLayer({id:'l-base',type:'raster',source:'base',paint:{
+      'raster-fade-duration':120,'raster-brightness-max':.95,
+      'raster-saturation':cfg.mono?BASE[k].sat:BASE[k].sat/2,'raster-contrast':.1}},'l-dim');
+  },'база '+k);
+  safe(()=>{cfg.dim=BASE[k].dim;map.setPaintProperty('l-dim','fill-opacity',cfg.dim);
+    const r=g('rg-dim');if(r)r.value=cfg.dim;const o=g('v-dim');if(o)o.textContent=bar(cfg.dim/0.9,8)},'затемнення');
   baseList();
 }
-function mountCustom(url){if(url)TILESETS.custom.tiles=[url]}
-g('btn-url').onclick=()=>{
-  const u=g('in-url').value.trim();
-  if(!/\{z\}/.test(u)||!/\{x\}/.test(u)||!/\{y\}/.test(u)){st('url має містити {z}/{x}/{y}');return}
-  cfg.url=u;save();mountCustom(u);tried={};applyBase('custom');
-  logSrc('підключено власне джерело');st('власне джерело підключено');
-};
-g('btn-url-off').onclick=()=>{cfg.url='';g('in-url').value='';TILESETS.custom.tiles=null;save();
-  tried={};applyBase('osm');st('власне джерело прибрано')};
-/* лічильник успішних тайлів бази */
-map.on('sourcedata',e=>{
-  if(e.sourceId==='base'&&e.tile&&(!e.tile.state||e.tile.state==='loaded')){
-    if(!baseOk){baseOk=1;clearTimeout(baseTimer);logSrc(TILESETS[cfg.base].n+': тайли пішли')}
+/* один тайл звичайним img — перевірка, чи джерело живе на цьому пристрої */
+function probeOne(tpl,z,x,y,ms){
+  return new Promise(res=>{
+    const t0=Date.now(),im=new Image();let done=0;
+    const fin=ok=>{if(done)return;done=1;res(ok?Math.max(1,Date.now()-t0):0)};
+    im.onload=()=>fin(1);im.onerror=()=>fin(0);setTimeout(()=>fin(0),ms||7000);
+    im.crossOrigin='anonymous';im.src=tpl.replace('{z}',z).replace('{x}',x).replace('{y}',y);
+  });
+}
+async function pickAlt(k,loud){
+  const c=map.getCenter(),z=Math.max(3,Math.min(11,Math.round(map.getZoom())));
+  const x=Math.floor(mx(c.lng)*Math.pow(2,z)),y=Math.floor(my(c.lat)*Math.pow(2,z));
+  const rows=[],alts=BASE[k].alts;
+  let win=-1;
+  for(let i=0;i<alts.length;i++){
+    const ms=await probeOne(alts[i].u,z,x,y);
+    rows.push((alts[i].n+' ').padEnd(20,'.')+' '+(ms?'ok '+ms+' мс':'FAIL'));
+    if(ms&&win<0){win=i;if(!loud)break}
   }
+  const dem=await probeOne(DEM_TILE,z,x,y);
+  rows.push('РЕЛЬЄФ DEM '.padEnd(20,'.')+' '+(dem?'ok '+dem+' мс':'FAIL'));
+  const el=g('src-log');
+  if(el)el.textContent=rows.map((r,i)=>(i===rows.length-1?'└─ ':'├─ ')+r).join('\n');
+  if(win<0){st('джерело мапи не відповідає на цій мережі');return}
+  if(win!==altIx[k]){applyBase(k,win);st('перекинув на '+alts[win].n)}
+  else if(loud)st('джерело живе: '+alts[win].n);
+  if(!dem&&cfg.terrain){applyTerrain(false);st('DEM не доїхав — рельєф вимкнув, мапа працює')}
+}
+map.on('sourcedata',e=>{
   if(e.sourceId==='dem'&&e.tile&&!demOk){
     demOk=1;logSrc('DEM пішов');
     if(pendingTerrain&&cfg.terrain){pendingTerrain=false;
       safe(()=>map.setTerrain({source:'dem',exaggeration:cfg.exag}),'рельєф пізній')}
   }
 });
-let demOk=0;
 map.on('error',e=>{
   const id=e&&e.sourceId;if(!id)return;
   errCount[id]=(errCount[id]||0)+1;
-  if(errCount[id]===4||errCount[id]%40===0)logSrc(id+': тайли не йдуть ('+errCount[id]+')');
-  if(id==='dem'&&!demOk&&errCount[id]===10&&cfg.terrain){
-    applyTerrain(false);st('DEM не доїхав — вимкнув рельєф, мапа лишається');
-  }
+  if(errCount[id]===6)logSrc(id+': тайли не йдуть');
 });
-/* ─── вимірювання: яке джерело реально доїжджає на цьому пристрої ─── */
-function probeOne(tpl,z,x,y,ms){
-  return new Promise(res=>{
-    const t0=Date.now(),im=new Image();let done=0;
-    const fin=ok=>{if(done)return;done=1;res(ok?Math.max(1,Date.now()-t0):0)};
-    im.onload=()=>fin(1);im.onerror=()=>fin(0);
-    setTimeout(()=>fin(0),ms||7000);
-    im.crossOrigin='anonymous';
-    im.src=tpl.replace('{z}',z).replace('{x}',x).replace('{y}',y);
-  });
-}
-async function autoBase(force){
-  const c=map.getCenter(),z=Math.max(3,Math.min(11,Math.round(map.getZoom())));
-  const x=Math.floor(mx(c.lng)*Math.pow(2,z)),y=Math.floor(my(c.lat)*Math.pow(2,z));
-  const keys=Object.keys(TILESETS).filter(k=>TILESETS[k].tiles);
-  if(cfg.url)keys.push('custom');
-  st('міряю, яка підкладка доїде…',1);
-  const ok={};
-  await Promise.all(keys.map(k=>probeOne(k==='custom'?cfg.url:TILESETS[k].tiles[0],z,x,y).then(v=>ok[k]=v)));
-  const dem=await probeOne(DEM_TILE,z,x,y);
-  const rows=keys.map(k=>((TILESETS[k]?TILESETS[k].n:k)+' ').padEnd(20,'.')+' '+(ok[k]?'ok '+ok[k]+' мс':'FAIL'));
-  rows.push('РЕЛЬЄФ DEM '.padEnd(20,'.')+' '+(dem?'ok '+dem+' мс':'FAIL'));
-  const el=g('src-log');
-  if(el)el.textContent=rows.map((r,i)=>(i===rows.length-1?'└─ ':'├─ ')+r).join('\n');
-  const live=keys.filter(k=>ok[k]);
-  if(!live.length){st('жодна підкладка не доїхала — мережа ріже тайли');return}
-  const pick=(cfg.manual&&ok[cfg.base])?cfg.base:live[0];
-  if(pick!==cfg.base||force){tried={};applyBase(pick);st('ставлю '+TILESETS[pick].n+' ('+ok[pick]+' мс)')}
-  else st('підкладка жива: '+TILESETS[pick].n+' ('+ok[pick]+' мс)');
-  if(!dem&&cfg.terrain){applyTerrain(false);st('DEM не доїхав — рельєф вимкнув, мапа працює')}
-}
-g('btn-probe').onclick=()=>autoBase(true);
+g('btn-probe').onclick=()=>pickAlt(cfg.base,1);
 
 /* ─── СІТКА ─── */
 function buildGrid(){
@@ -1312,7 +1267,8 @@ g('t-grid').onclick=()=>{cfg.grid=!cfg.grid;const e=g('t-grid');e.textContent=cf
   e.classList.toggle('on',cfg.grid);map.setLayoutProperty('l-grid','visibility',cfg.grid?'visible':'none');buildGrid();save()};
 g('t-mono').onclick=()=>{cfg.mono=!cfg.mono;const e=g('t-mono');e.textContent=cfg.mono?'[x]':'[ ]';
   e.classList.toggle('on',cfg.mono);save();
-  safe(()=>{if(map.getLayer('l-base'))map.setPaintProperty('l-base','raster-saturation',cfg.mono?-.95:-.3)},'знебарвлення')};
+  safe(()=>{if(map.getLayer('l-base'))map.setPaintProperty('l-base','raster-saturation',
+    cfg.mono?BASE[cfg.base].sat:BASE[cfg.base].sat/2)},'знебарвлення')};
 
 /* ─── СТАРТ ─── */
 /* ═══════════ СТАРТ: стійкий до збоїв ═══════════ */
@@ -1324,10 +1280,9 @@ function boot(){
   booted=true;
   safe(()=>{
   setTheme(cfg.theme||'green');
-  if(cfg.url){g('in-url').value=cfg.url;mountCustom(cfg.url)}
-  applyBase(TILESETS[cfg.base]?cfg.base:'osm');
+  applyBase(BASE[cfg.base]?cfg.base:'dark');
   applyTerrain(cfg.terrain);
-  setTimeout(()=>safe(()=>autoBase(false),'автопідбір'),400);
+  setTimeout(()=>safe(()=>pickAlt(cfg.base),'перевірка джерела'),300);
   g('rg-exag').value=cfg.exag;g('v-exag').textContent=cfg.exag.toFixed(1)+'×';
   g('rg-pitch').value=Math.round(map.getPitch());g('v-pitch').textContent=Math.round(map.getPitch())+'°';
   g('rg-hill').value=cfg.hill;g('v-hill').textContent=bar(cfg.hill,8);
@@ -1367,7 +1322,7 @@ setInterval(()=>{
 function hardReload(){
   st('перетягую мапу з нуля…',1);
   safe(()=>{booted=false;boot()},'reboot');
-  safe(()=>{tried={};applyBase(cfg.base)},'тайли');
+  safe(()=>{applyBase(cfg.base);pickAlt(cfg.base,1)},'тайли');
   safe(render,'рендер');
   map.triggerRepaint();
   setTimeout(()=>st('перезавантажив'),900);
