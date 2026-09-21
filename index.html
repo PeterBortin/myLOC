@@ -84,13 +84,9 @@ pre,code,input,select,textarea,button{font-family:'JetBrains Mono',ui-monospace,
 
 /* ═══ МАПА ═══ */
 #map{position:absolute;inset:0;touch-action:none;z-index:0}
-.maplibregl-canvas{filter:none}
-body.mono .maplibregl-canvas{filter:saturate(.5) contrast(1.05)}
-body.inv .maplibregl-canvas{filter:invert(1) hue-rotate(180deg) brightness(.95) contrast(1.06)}
-body.inv.mono .maplibregl-canvas{filter:invert(1) hue-rotate(180deg) saturate(.55) brightness(.95) contrast(1.06)}
 .maplibregl-ctrl-attrib,.maplibregl-ctrl-bottom-right,.maplibregl-ctrl-bottom-left{display:none!important}
 #map:after{content:'';position:absolute;inset:0;pointer-events:none;
-  background:radial-gradient(ellipse at center,transparent 55%,var(--bg-main) 130%);opacity:.75}
+  background:radial-gradient(ellipse at center,transparent 62%,var(--bg-main) 135%);opacity:.5}
 
 /* ═══ ВЕРХНЯ ПАНЕЛЬ ═══ */
 #top{
@@ -334,7 +330,8 @@ input[type=range]::-moz-range-thumb{width:12px;height:12px;background:var(--text
     <input type="range" id="rg-hill" min="0" max="1" step="0.05" value="0.35">
     <div class="r"><span class="k">сітка координат</span><span class="chk" id="t-grid">[ ]</span></div>
     <div class="r"><span class="k">знебарвити підкладку</span><span class="chk on" id="t-mono">[x]</span></div>
-    <div class="r"><span class="k">інверсія (світла мапа → темна)</span><span class="chk on" id="t-inv">[x]</span></div>
+    <div class="r"><span class="k">затемнення підкладки</span><span class="v bar" id="v-dim"></span></div>
+    <input type="range" id="rg-dim" min="0" max="0.9" step="0.05" value="0.55">
 
     <div class="sec">КЛАСТЕРИЗАЦІЯ ПО НАВАНТАЖЕННЮ</div>
     <div class="r"><span class="k">3D-стовпи навантаження</span><span class="chk" id="t-load">[ ]</span></div>
@@ -523,7 +520,7 @@ const ANTS=[[0,4,3],[0.5,4,2.5],[1,4,2],[1.5,4,1.5],[2,4,1],[2.5,4,0.5],
 
 let objects=[],groups=[],draft=null,vxm=[],objm=[],runners={},cur=null,curNew=false;
 let selectedId=null,filter='all',query='',antsPhase=0,lastTick=0,mv=null;
-let cfg={base:'osm',inv:1,terrain:true,exag:1.4,pitch:62,hill:.35,grid:false,mono:true,theme:'green',url:'',
+let cfg={base:'osm',dim:.55,terrain:true,exag:1.4,pitch:62,hill:.35,grid:false,mono:true,theme:'green',url:'',
   load:false,lmode:'count',lh:600,lcol:true};
 let LOAD={};
 let lastStyle={color:'#00ff66',width:3,dash:'solid',opacity:1,fill:true,fillOpacity:.25,head:1,size:1,
@@ -537,6 +534,7 @@ try{SAFE=localStorage.getItem(CRASHK)==='1';localStorage.setItem(CRASHK,'1')}cat
 try{objects=JSON.parse(localStorage.getItem(LS.obj))||[]}catch(e){}
 try{groups=JSON.parse(localStorage.getItem(LS.grp))||[]}catch(e){}
 try{Object.assign(cfg,JSON.parse(localStorage.getItem(LS.cfg))||{})}catch(e){}
+if(cfg.dim===undefined)cfg.dim=.55;
 if(SAFE){cfg.terrain=false;cfg.load=false;NO_EXTRAS=true;if(cfg.base==='custom')cfg.base='osm'}
 let view={c:[24.50,48.16],z:12.2,p:62,b:-20};
 try{const v=JSON.parse(localStorage.getItem(LS.view));if(v)view=v}catch(e){}
@@ -545,7 +543,7 @@ const save=()=>{localStorage.setItem(LS.obj,JSON.stringify(objects));
 
 /* ─── інверсія підкладки: канва перевертається CSS, тому кольори векторів
       віддаємо мапі заздалегідь «перевернутими», щоб на екрані вийшли рідні ─── */
-let INV=false;
+let INV=false; /* канву не фільтруємо: на iOS це вбиває WebGL */
 function hex2rgb(c){
   if(!c||c[0]!=='#')return null;
   let h=c.slice(1);
@@ -573,11 +571,11 @@ function repaintStatics(){
     map.setPaintProperty('l-hill','hillshade-accent-color',pc('#0a1420'));
   },'кольори');
 }
-function setInv(v){
-  INV=!!v;cfg.inv=INV?1:0;save();
-  document.body.classList.toggle('inv',INV);
-  const e=g('t-inv');if(e){e.textContent=INV?'[x]':'[ ]';e.classList.toggle('on',INV)}
-  repaintStatics();safe(render,'перефарбування');
+function setInv(){INV=false;cfg.inv=0}
+function setDim(v){
+  cfg.dim=Math.max(0,Math.min(.9,v));save();
+  safe(()=>map.setPaintProperty('l-dim','fill-opacity',cfg.dim),'затемнення');
+  const o=g('v-dim');if(o)o.textContent=bar(cfg.dim/0.9,8);
 }
 
 /* ─── утиліти ─── */
@@ -655,8 +653,8 @@ const colorOf=o=>(o.st.inherit&&gColor(o.groupId))||o.st.color;
 const SAT_TILE='https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
 const DEM_TILE='https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png';
 const TILESETS={
-  osm:{n:'OSM ТЕМНА (ІНВЕРСІЯ)',max:19,inv:1,tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png']},
-  osm_hot:{n:'OSM FR РЕЗЕРВ',max:19,inv:1,tiles:[
+  osm:{n:'OSM (ЗАТЕМНЕНА)',max:19,inv:1,tiles:['https://tile.openstreetmap.org/{z}/{x}/{y}.png']},
+  osm_hot:{n:'OSM FR (РЕЗЕРВ)',max:19,inv:1,tiles:[
     'https://a.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png','https://b.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png']},
   esri_dark:{n:'ESRI DARK GRAY',max:16,tiles:[
     'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}']},
@@ -670,10 +668,13 @@ const FALLBACK=['osm','osm_hot','topo','esri_dark','esri_sat','none'];
 const EMPTY={type:'FeatureCollection',features:[]};
 const STYLE={version:8,sources:{
     dem:{type:'raster-dem',tileSize:256,maxzoom:14,encoding:'terrarium',tiles:[DEM_TILE]},
+    world:{type:'geojson',data:{type:'Feature',properties:{},geometry:{type:'Polygon',
+      coordinates:[[[-180,-85],[180,-85],[180,85],[-180,85],[-180,-85]]]}}},
     grid:{type:'geojson',data:EMPTY},load:{type:'geojson',data:EMPTY},
     objects:{type:'geojson',data:EMPTY},draft:{type:'geojson',data:EMPTY}},
   layers:[
     {id:'bg',type:'background',paint:{'background-color':'#05080a'}},
+    {id:'l-dim',type:'fill',source:'world',paint:{'fill-color':'#04070a','fill-opacity':.55,'fill-antialias':false}},
     {id:'l-hill',type:'hillshade',source:'dem',paint:{'hillshade-exaggeration':.35,
       'hillshade-shadow-color':'#000','hillshade-highlight-color':'#6fffa8','hillshade-accent-color':'#03150a'}},
     {id:'l-grid',type:'line',source:'grid',layout:{visibility:'none'},
@@ -1194,8 +1195,8 @@ function applyBase(k){
       map.addSource('base',{type:'raster',tileSize:256,maxzoom:t.max||19,tiles:tiles.slice()});
       map.addLayer({id:'l-base',type:'raster',source:'base',paint:{
         'raster-fade-duration':120,'raster-brightness-min':0,
-        'raster-brightness-max':t.dark?.5:1,
-        'raster-saturation':t.dark?-.75:-.15,'raster-contrast':t.dark?.2:.05}},'l-hill');
+        'raster-brightness-max':.92,
+        'raster-saturation':cfg.mono?-.95:-.3,'raster-contrast':.12}},'l-dim');
     },'база '+k);
     baseTimer=setTimeout(()=>{
       if(baseOk)return;
@@ -1391,7 +1392,7 @@ g('rg-pitch').oninput=e=>{cfg.pitch=+e.target.value;g('v-pitch').textContent=cfg
 g('rg-hill').oninput=e=>{cfg.hill=+e.target.value;g('v-hill').textContent=bar(cfg.hill,8);
   map.setPaintProperty('l-hill','hillshade-exaggeration',cfg.hill);save()};
 g('t-terrain').onclick=()=>applyTerrain(!cfg.terrain);
-g('t-inv').onclick=()=>setInv(!INV);
+g('rg-dim').oninput=e=>setDim(parseFloat(e.target.value));
 g('t-load').onclick=()=>{cfg.load=!cfg.load;save();syncCluster();render();
   st(cfg.load?'стовпи навантаження піднято':'стовпи прибрано')};
 g('t-lcol').onclick=()=>{cfg.lcol=!cfg.lcol;const e=g('t-lcol');e.textContent=cfg.lcol?'[x]':'[ ]';
@@ -1404,7 +1405,8 @@ document.querySelectorAll('[data-lmode]').forEach(b=>b.onclick=()=>{
 g('t-grid').onclick=()=>{cfg.grid=!cfg.grid;const e=g('t-grid');e.textContent=cfg.grid?'[x]':'[ ]';
   e.classList.toggle('on',cfg.grid);map.setLayoutProperty('l-grid','visibility',cfg.grid?'visible':'none');buildGrid();save()};
 g('t-mono').onclick=()=>{cfg.mono=!cfg.mono;const e=g('t-mono');e.textContent=cfg.mono?'[x]':'[ ]';
-  e.classList.toggle('on',cfg.mono);document.body.classList.toggle('mono',cfg.mono);save()};
+  e.classList.toggle('on',cfg.mono);save();
+  safe(()=>{if(map.getLayer('l-base'))map.setPaintProperty('l-base','raster-saturation',cfg.mono?-.95:-.3)},'знебарвлення')};
 
 /* ─── СТАРТ ─── */
 /* ═══════════ СТАРТ: стійкий до збоїв ═══════════ */
@@ -1430,8 +1432,7 @@ function boot(){
   g('rg-lh').value=cfg.lh;g('v-lh').textContent=cfg.lh+' м';
   document.querySelectorAll('[data-lmode]').forEach(x=>x.classList.toggle('on',x.dataset.lmode===cfg.lmode));
   const tm=g('t-mono');tm.textContent=cfg.mono?'[x]':'[ ]';tm.classList.toggle('on',cfg.mono);
-  document.body.classList.toggle('mono',cfg.mono);
-  setInv(cfg.inv===undefined?1:cfg.inv);
+  g('rg-dim').value=cfg.dim;setDim(cfg.dim);
   document.querySelectorAll('[data-f]').forEach(x=>x.classList.toggle('on',x.dataset.f==='all'));
   },'панелі');
   safe(syncCluster,'кластер');safe(buildAggUI,'агрегація');safe(renderAgg,'зведення');
@@ -1504,7 +1505,6 @@ async function buildSatCanvas(coords,z){
   const jobs=[];
   for(let x=x0;x<=x1;x++)for(let y=y0;y<=y1;y++)jobs.push({x,y});
   const tpl=(cfg.base==='custom'&&cfg.url)?cfg.url:SAT_TILE;
-  if(INV){try{ctx.filter='invert(1) hue-rotate(180deg)'}catch(e){}}
   dlog('клею мозаїку: '+jobs.length+' тайлів (z'+z+')');
   let done=0,got=0;
   for(let i=0;i<jobs.length;i+=8){
